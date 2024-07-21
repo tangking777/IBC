@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>Res/max.png</file>
+        <file>qml/MsgDialog.qml</file>
+        <file>Res/hide.png</file>
+        <file>Res/normal.png</file>
+        <file>Res/quit.png</file>
+        <file>Res/fail.png</file>
+        <file>Res/success.png</file>
+        <file>qml/DateChoose.qml</file>
+        <file>Res/dateMid.png</file>
+        <file>Res/export.png</file>
+        <file>Res/exportPDF.png</file>
+        <file>Res/openFile.png</file>
+    </qresource>
+</RCC>
