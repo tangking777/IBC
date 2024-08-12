@@ -20,24 +20,62 @@ namespace {
     const int timeUintByteLength = 2;
     const int checkByteLength = 4;
 
-    qint16 GetIntData(QByteArray byteArr)
+    qint16 GetUIntData(QByteArray byteArr)
     {
-        // std::reverse(byteArr.begin(), byteArr.end());
-        // QByteArray hexArr = byteArr.toHex();
-        // bool ok;
-        // return hexArr.toInt(&ok, 16);
-        return qFromLittleEndian<qint16>(*reinterpret_cast<const qint16*>(byteArr.constData()));
+        return static_cast<qint16>(byteArr.at(0));
     }
-    QString GetQStringDataByGBK(QByteArray byteArr, bool trimed = false)
+
+    qint16 GetInt16Data(QByteArray byteArray)
+    {
+        if (byteArray.size() != 2) {
+            return 0;
+        }
+
+        char firstByte = byteArray.at(1);
+        char secondByte = byteArray.at(0);
+
+        qint16 totalValue;
+
+        if (firstByte & 0x80) {
+            totalValue = -(((~firstByte & 0x7F) << 8) | static_cast<quint8>(secondByte));
+        } else {
+            totalValue = (static_cast<quint8>(firstByte) << 8) | static_cast<quint8>(secondByte);
+        }
+        return totalValue;
+    }
+
+    qint32 GetInt32Data(QByteArray byteArray)
+    {
+        if (byteArray.size() != 4) {
+            return 0;
+        }
+        char firstByte = byteArray.at(3);
+        char secondByte = byteArray.at(2);
+        char thirdByte = byteArray.at(1);
+        char fourthByte = byteArray.at(0);
+
+        return (static_cast<quint8>(firstByte) << 24) |
+                (static_cast<quint8>(secondByte) << 16) |
+                (static_cast<quint8>(thirdByte) << 8) |
+                (static_cast<quint8>(fourthByte));
+
+    }
+
+    QString GetQStringDataByGBK(QByteArray binaryData, bool trimed = false)
     {
         QTextCodec *codec = QTextCodec::codecForName("GBK");//指定QString的编码方式
-        QString string = codec->toUnicode(byteArr);//nameArray可以是char*，可以是QByteArray
+        QString string = codec->toUnicode(binaryData);//nameArray可以是char*，可以是QByteArray
         if(trimed)
         {
             int idx = string.indexOf(QChar(0x00));
             string.remove(idx, string.length() - idx);
         }
         return string;
+    }
+
+    QString GetQStringData(QByteArray binaryData)
+    {
+        return QString::fromUtf8(binaryData);
     }
 }
 
@@ -53,19 +91,12 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
 
     QByteArray infoByteArr = inFile.read(infoTotleByteLength);
 
-    // QDataStream stream(&infoByteArr, QIODevice::ReadOnly);
-    // stream.setByteOrder(QDataStream::LittleEndian);
-    // //stream.skipRawData(infoTotleByteLength + 30);
-    // qint16 preInt, preInt2;
-    // stream >> preInt >> preInt2;
-    // return false;
-
     for(int i = 0; i < maxUserCnt; i++)
     {
         QVariantMap infoMap;
         long infoIndex = i * infoByteLength;
         QByteArray idByteArr = infoByteArr.mid(infoIndex + nameAndIdByteLength * 2 + 2, 16);//infoByteArr.mid(infoIndex + nameAndIdByteLength, nameAndIdByteLength);
-        QString id = GetQStringDataByGBK(idByteArr, false);
+        QString id = GetQStringData(idByteArr);
         if(id.isEmpty())
         {
             continue;
@@ -80,36 +111,35 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
         //     pUserDataMap[id] = userData;
         // }
         QByteArray nameByteArr = infoByteArr.mid(infoIndex, nameAndIdByteLength);
-        infoMap.insert("name", GetQStringDataByGBK(nameByteArr, false));
+        infoMap.insert("name", GetQStringDataByGBK(nameByteArr, true));
 
         QByteArray sexByteArr = infoByteArr.mid(infoIndex + nameAndIdByteLength * 2
                                                 , ageAndSexByteLength);
-        infoMap.insert("isMan", GetIntData(sexByteArr) == 0);
+        infoMap.insert("isMan", GetUIntData(sexByteArr) == 0);
         QByteArray ageByteArr = infoByteArr.mid(infoIndex + nameAndIdByteLength * 2 + 1
                                                 , ageAndSexByteLength);
-        infoMap.insert("age", GetIntData(ageByteArr));
+        infoMap.insert("age", GetUIntData(ageByteArr));
 
 
         QByteArray dataByteArr = inFile.read(maxDataCnt * dataByteLength);
         QByteArray oldCheckAndTimeByteArr = inFile.read(checkAndTimeByteLength);
         QByteArray checkAndTimeByteArr = inFile.read(checkAndTimeByteLength);
 
-        int second = GetIntData(checkAndTimeByteArr.mid(0, timeUintByteLength));
-        int minute = GetIntData(checkAndTimeByteArr.mid(2, timeUintByteLength));
-        int hour  = GetIntData(checkAndTimeByteArr.mid(4, timeUintByteLength));
-        int day   = GetIntData(checkAndTimeByteArr.mid(6, timeUintByteLength));
-        int month = GetIntData(checkAndTimeByteArr.mid(8, timeUintByteLength));
-        int year  = GetIntData(checkAndTimeByteArr.mid(10, timeUintByteLength));
+        int second = GetInt16Data(checkAndTimeByteArr.mid(0, timeUintByteLength));
+        int minute = GetInt16Data(checkAndTimeByteArr.mid(2, timeUintByteLength));
+        int hour  = GetInt16Data(checkAndTimeByteArr.mid(4, timeUintByteLength));
+        int day   = GetInt16Data(checkAndTimeByteArr.mid(6, timeUintByteLength));
+        int month = GetInt16Data(checkAndTimeByteArr.mid(8, timeUintByteLength));
+        int year  = GetInt16Data(checkAndTimeByteArr.mid(10, timeUintByteLength));
         QDateTime dateTime(QDate(year, month, day), QTime(hour, minute, second));
         qint64 dateSecs = dateTime.toSecsSinceEpoch();
 
-        int dataCnt = GetIntData(checkAndTimeByteArr.mid(12, checkByteLength));
+        int dataCnt = GetInt32Data(checkAndTimeByteArr.mid(12, checkByteLength));
         // check
-        // int index  = GetIntData(checkAndTimeByteArr.mid(12, checkByteLength));
-        // int indexCheck  = GetIntData(checkAndTimeByteArr.mid(16, checkByteLength));
-        // int totle  = GetIntData(checkAndTimeByteArr.mid(20, checkByteLength));
-        // int totleCheck  = GetIntData(checkAndTimeByteArr.mid(24, checkByteLength));
-
+        // int index  = GetInt16Data(checkAndTimeByteArr.mid(12, checkByteLength));
+        // int indexCheck  = GetInt16Data(checkAndTimeByteArr.mid(16, checkByteLength));
+        // int totle  = GetInt16Data(checkAndTimeByteArr.mid(20, checkByteLength));
+        // int totleCheck  = GetInt16Data(checkAndTimeByteArr.mid(24, checkByteLength));
         QVector<double> timeData;
         QVector<double> temperatureData;
         QVector<double> pressureData;
@@ -117,28 +147,28 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
         for(int j = 0; j < dataCnt; j++)
         {
             QByteArray valueArr = dataByteArr.mid(j * 10, 2);
-            double preValue = (double)GetIntData(valueArr) / 100.0;
+            double preValue = (double)GetInt16Data(valueArr) / 100.0;
             //qDebug() << "preValue  " << j <<" == "<< valueArr << " -> " << preValue;
-            // if(preValue <= 0 || preValue > 100)
-            // {
-            //     continue;
-            // }
+            if(preValue <= -50 || preValue > 150)
+            {
+                continue;
+            }
             QByteArray valueArr2 = dataByteArr.mid(j * 10 + 4, 2);
-            double tempValue = (double)GetIntData(valueArr2) / 10.0;
-            // if(tempValue < 30 || tempValue > 50)
-            // {
-            //     continue;
-            // }
+            double tempValue = (double)GetInt16Data(valueArr2) / 10.0;
+            if(tempValue < 30 || tempValue > 50)
+            {
+                continue;
+            }
             timeData.push_back((double)beginSecs + j);
             pressureData.push_back(preValue);
             temperatureData.push_back(tempValue);
         }
 
-
+        qDebug() << " data count == " << timeData.count();
         if(isMegred)
         {
             bool isFind = false;
-            for(int i = 0; i < m_userData.count() - 1; i++)
+            for(int i = 0; i < m_userData.count(); i++)
             {
                 QVariantMap dataMap = m_userData[i].toMap();
                 if(dataMap["id"].toString() == id)
@@ -153,7 +183,7 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
 
                     QVector<double> existsTemperatureData = dataMap["temperatureData"].value<QVector<double>>();
                     existsTemperatureData.append(temperatureData);
-                    dataMap.insert("timeData", QVariant::fromValue(existsTemperatureData));
+                    dataMap.insert("temperatureData", QVariant::fromValue(existsTemperatureData));
 
                     m_userData[i] = dataMap;
                     isFind = true;

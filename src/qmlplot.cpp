@@ -56,7 +56,6 @@ void BasePlotItem::mouseReleaseEvent( QMouseEvent* event )
 
 void BasePlotItem::mouseMoveEvent( QMouseEvent* event )
 {
-    qDebug() << "mouseMoveEvent";
     routeMouseEvents( event );
 }
 
@@ -76,8 +75,6 @@ void BasePlotItem::graphClicked( QCPAbstractPlottable* plottable )
 
 void BasePlotItem::routeMouseEvents( QMouseEvent* event )
 {
-    qDebug() << "routeMouseEvents ==";
-
     if (getPlot())
     {
         // if(event->button() == Qt::MouseButton::LeftButton)
@@ -130,9 +127,12 @@ void BasePlotItem::routeMouseEvents( QMouseEvent* event )
 
 
             m_tracer_temp->setVisible(true);
+            m_tracer_power->setVisible(true);
+
+            m_cur_Label_temp->setVisible(true);
+            m_cur_Label_power->setVisible(true);
 
             double cur_x = getPlot()->xAxis->pixelToCoord(event->pos().x());
-            qDebug() << "cur_x ==" << cur_x;
 
             m_tracer_temp->setGraph(getPlot()->graph(0));
             m_tracer_temp->setGraphKey(cur_x);
@@ -268,11 +268,13 @@ void CustomPlotItem::initCustomPlot()
     m_tracer_temp->setStyle(QCPItemTracer::tsCircle);
     m_tracer_temp->setPen(QPen(Qt::red, 3, Qt::SolidLine));
     m_tracer_temp->setBrush(Qt::SolidPattern);
+    m_tracer_temp->setVisible(false);
 
     m_tracer_power = new QCPItemTracer(getPlot());
     m_tracer_power->setStyle(QCPItemTracer::tsCircle);
     m_tracer_power->setPen(QPen(Qt::red, 3, Qt::SolidLine));
     m_tracer_power->setBrush(Qt::SolidPattern);
+    m_tracer_power->setVisible(false);
 
     m_tracer_power->position->setType(QCPItemPosition::ptPlotCoords);
     m_tracer_power->setSize(5);
@@ -285,13 +287,15 @@ void CustomPlotItem::initCustomPlot()
 
     m_cur_Label_temp = new QCPItemText(getPlot());
     m_cur_Label_temp->position->setParentAnchor(m_tracer_temp->position);
-    m_cur_Label_temp->setFont(QFont(qApp->font().family(), 10));
+    m_cur_Label_temp->setFont(QFont(qApp->font().family(), 12));
     m_cur_Label_temp->setColor(Qt::blue);
+    m_cur_Label_temp->setVisible(false);
 
     m_cur_Label_power = new QCPItemText(getPlot());
     m_cur_Label_power->position->setParentAnchor(m_tracer_power->position);
-    m_cur_Label_power->setFont(QFont(qApp->font().family(), 10));
+    m_cur_Label_power->setFont(QFont(qApp->font().family(), 12));
     m_cur_Label_power->setColor(Qt::red);
+    m_cur_Label_power->setVisible(false);
 
     m_cur_Label_temp->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -334,12 +338,16 @@ void CustomPlotItem::setTimeRange(double min, double max)
 void CustomPlotItem::replot()
 {
     getPlot()->replot();
-    getPlot()->savePdf("D://1.pdf");
 }
 
 void CustomPlotItem::rescaleAxes()
 {
     getPlot()->rescaleAxes();
+}
+
+void CustomPlotItem::exportPdf(const QString path)
+{
+    getPlot()->savePdf(path);
 }
 
 // void CustomPlotItem::mousePressEvent( QMouseEvent* event )

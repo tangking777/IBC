@@ -2,7 +2,7 @@ import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Dialogs 1.3
 import QtQuick.Controls 2.5
-import Qt.labs.platform 1.1
+//import Qt.labs.platform 1.1
 
 import "./qml/"
 import IbpicpDataControl 1.0
@@ -37,7 +37,6 @@ ApplicationWindow  {
             m_timeData = timeData;
             var pressureData = data["pressureData"];
             var temperatureData = data["temperatureData"];
-            console.log("ss", timeData[0])
             const startDate = new Date(timeData[0] * 1000);
             const endDate = new Date(timeData[timeData.length - 1] * 1000);
             const dayList = getAllDay(startDate, endDate);
@@ -57,25 +56,6 @@ ApplicationWindow  {
 
     property bool showTempData: false
     property bool showPresData: false
-
-    // function setRanger(startTimeStr, startTimeStr)
-    // {
-    //     var date = new Date(timeStr);
-    //     const time = Math.trunc(Date.parse(date) / 1000);
-    //     console.log("time", time, isEnd);
-    //     console.log("time s", m_timeData[0]);
-    //     console.log("time e", m_timeData[m_timeData.length - 1]);
-    //     if(isEnd)
-    //     {
-    //         myplot.setTimeRange(time, m_timeData[m_timeData.length - 1]);
-    //         myplot.replot();
-    //     }
-    //     else
-    //     {
-    //         myplot.setTimeRange(m_timeData[0], time);
-    //         myplot.replot();
-    //     }
-    // }
 
     function updateTimeRanger()
     {
@@ -158,9 +138,7 @@ ApplicationWindow  {
             root.showMaximized();
             isMaxShow = true;
         }
-
-        ibpicpDataControl.ReadIbpicpData("D://ibpicpTrend.bin", false);
-
+        console.log("aq" ,FileDialog.OpenFile,  outputFileDialog.fileMode == FileDialog.OpenFile)
     }
 
     FileDialog {
@@ -168,8 +146,20 @@ ApplicationWindow  {
         title: "选择数据文件"
         nameFilters: ["files (*.bin)"]
         onAccepted: {
-            var path = inputFileDialog.file.toString().replace("file:///", "");
-            ibpicpDataControl.ReadIbpicpData(path, false);
+            var path = inputFileDialog.fileUrl.toString().replace("file:///", "");
+            ibpicpDataControl.ReadIbpicpData(path, true);
+        }
+    }
+
+    FileDialog {
+        id: outputFileDialog
+        title: "导出PDF"
+        nameFilters: ["files (*.pdf)"]
+        //fileMode: FileDialog.SaveFile
+        selectExisting: false
+        onAccepted: {
+            var path = outputFileDialog.fileUrl.toString().replace("file:///", "")
+            myplot.exportPdf(path);
         }
     }
 
@@ -424,7 +414,7 @@ ApplicationWindow  {
                                                             width: parent.width
                                                             height: parent.height / 2
                                                             text: "ID: " + modelData.id
-                                                            font.pixelSize: 14
+                                                            font.pixelSize: 12
                                                             color: cur_user_index === index ? "#000000" : "#999999"
                                                             font.family: "微软雅黑"
                                                             horizontalAlignment: Text.AlignLeft
@@ -466,7 +456,6 @@ ApplicationWindow  {
                                                     {
                                                         return;
                                                     }
-                                                    console.log("cur_user_index", index)
                                                     cur_user_index = index;
                                                 }
                                             }
@@ -824,7 +813,7 @@ ApplicationWindow  {
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
-
+                                outputFileDialog.open();
                             }
                         }
 

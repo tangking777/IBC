@@ -63,6 +63,7 @@ public slots:
     Q_INVOKABLE void setTimeRange(double min, double max);
     Q_INVOKABLE void replot();
     Q_INVOKABLE void rescaleAxes();
+    Q_INVOKABLE void exportPdf(const QString path);
 
 private:
     QCPGraph* m_TempGraph = nullptr;
