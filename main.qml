@@ -61,7 +61,7 @@ ApplicationWindow  {
             myplot.rescaleAxes()
             myplot.replot();
         }
-        iCalcValue();
+        // iCalcValue();
     }
 
     property bool showTempData: false
@@ -74,41 +74,53 @@ ApplicationWindow  {
     property double avgTemp: 0
 
 
-    function iCalcValue()
+    function iCalcValue(stime, etime)
     {
         var data = userDataList[cur_user_index];
         var timeData = data["timeData"];
+        const firstTime = timeData[0];
+        if(stime < firstTime)
+        {
+            stime = firstTime;
+        }
+        const sIndex = stime - firstTime;
+
+        const lastTime = timeData[timeData.length - 1];
+        if(etime > lastTime)
+        {
+            etime = lastTime;
+        }
+        const eIndex = etime - firstTime;
+
         var pressureData = data["pressureData"];
         var temperatureData = data["temperatureData"];
 
         var maxPresValue = -999999;
         var minPresValue = 999999;
         var sumPresValue = 0;
-        for(var i = 0; i < pressureData.length; i++)
+        var maxTempValue = -999999;
+        var minTempValue = 999999;
+        var sumTempValue = 0;
+
+        for(var i = sIndex; i < eIndex; i++)
         {
             var pres = pressureData[i];
             maxPresValue = Math.max(pres, maxPresValue);
             minPresValue = Math.min(pres, minPresValue);
             sumPresValue += pres;
-        }
-        maxPres = maxPresValue.toFixed(2);
-        minPres = minPresValue.toFixed(2);
-        avgPres = (sumPresValue / pressureData.length).toFixed(2);
 
-
-        var maxTempValue = -999999;
-        var minTempValue = 999999;
-        var sumTempValue = 0;
-        for(var i = 0; i < temperatureData.length; i++)
-        {
             var temp = temperatureData[i];
             maxTempValue = Math.max(temp, maxTempValue);
             minTempValue = Math.min(temp, minTempValue);
             sumTempValue += temp;
         }
+        maxPres = maxPresValue.toFixed(2);
+        minPres = minPresValue.toFixed(2);
+        avgPres = (sumPresValue / (eIndex - sIndex)).toFixed(2);
+
         maxTemp = maxTempValue.toFixed(2);
         minTemp = minTempValue.toFixed(2);
-        avgTemp = (sumTempValue / temperatureData.length).toFixed(2);
+        avgTemp = (sumTempValue / (eIndex - sIndex)).toFixed(2);
     }
 
     function updateTimeRanger()
@@ -119,6 +131,7 @@ ApplicationWindow  {
         var eDate = new Date(etimeText.text);
         const etime = Math.trunc(Date.parse(eDate) / 1000);
 
+        iCalcValue(stime, etime);
         myplot.setTimeRange(stime, etime);
         myplot.replot();
     }
@@ -198,9 +211,11 @@ ApplicationWindow  {
         id: inputFileDialog
         title: "选择数据文件"
         nameFilters: ["files (*.bin)"]
+        selectMultiple: true
         onAccepted: {
-            var path = inputFileDialog.fileUrl.toString().replace("file:///", "");
-            ibpicpDataControl.ReadIbpicpData(path, true);
+            // console.log("aaa", fileUrls);
+            // var path = inputFileDialog.fileUrl.toString().replace("file:///", "");
+            ibpicpDataControl.ReadIbpicpDatas(fileUrls, true);
             cur_user_index = -1;
         }
     }
@@ -493,31 +508,6 @@ ApplicationWindow  {
                                                             verticalAlignment: Text.AlignVCenter
                                                         }
                                                     }
-
-                                                    // Column{
-                                                    //     width: 60
-                                                    //     height: parent.height
-                                                    //     Text {
-                                                    //         width: parent.width
-                                                    //         height: parent.height / 2
-                                                    //         text: "性别: " + (modelData.isMan ? "男" : "女")
-                                                    //         font.pixelSize: 14
-                                                    //         color: cur_user_index === index ? "#000000" : "#999999"
-                                                    //         font.family: "微软雅黑"
-                                                    //         horizontalAlignment: Text.AlignLeft
-                                                    //         verticalAlignment: Text.AlignVCenter
-                                                    //     }
-                                                    //     Text {
-                                                    //         width: parent.width
-                                                    //         height: parent.height / 2
-                                                    //         text: "年龄: " + modelData.age
-                                                    //         font.pixelSize: 14
-                                                    //         color: cur_user_index === index ? "#000000" : "#999999"
-                                                    //         font.family: "微软雅黑"
-                                                    //         horizontalAlignment: Text.AlignLeft
-                                                    //         verticalAlignment: Text.AlignVCenter
-                                                    //     }
-                                                    // }
                                                 }
                                             }
 
@@ -614,7 +604,14 @@ ApplicationWindow  {
                                             anchors.fill: parent
                                             onIChoose: {
                                                 var d = iGetDate(day, hour, min);
-                                                stimeText.text = d;
+                                                if(d > etimeText.text)
+                                                {
+                                                    stimeText.text = etimeText.text;
+                                                    etimeText.text = d;
+                                                }
+                                                else{
+                                                    stimeText.text = d;
+                                                }
                                                 dateChoose.close();
                                             }
                                         }
@@ -668,8 +665,15 @@ ApplicationWindow  {
                                             id:endDc
                                             anchors.fill: parent
                                             onIChoose: {
-                                                var d = iGetDate(day, hour, min)
-                                                etimeText.text = d;
+                                                var d = iGetDate(day, hour, min);
+                                                if(d < stimeText.text)
+                                                {
+                                                    etimeText.text = stimeText.text;
+                                                    stimeText.text = d;
+                                                }
+                                                else{
+                                                    etimeText.text = d;
+                                                }
                                                 endDateChoose.close();
                                             }
                                         }

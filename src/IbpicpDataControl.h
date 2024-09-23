@@ -10,6 +10,14 @@
 #include "CustomPlot/qcustomplot.h"
 
 
+struct UserInfo
+{
+    QString name;
+    QVector<double> TimeVec;
+    QVector<double> PreVec;
+    QVector<double> TempVec;
+};
+
 class IbpicpDataControl : public QObject
 {
 
@@ -18,15 +26,19 @@ public:
 
     Q_PROPERTY(QVariantList userData READ getUserData NOTIFY userDataChanged USER true)
     explicit IbpicpDataControl(QObject *parent = nullptr):QObject(parent){}
-    //bool PaintTable(int index, QCustomPlot* widget);
     QVariantList getUserData() {return m_userData;};
 signals:
     void userDataChanged();
 
 public slots:
-    bool ReadIbpicpData(QString filePath, bool isMegred = false);
+    bool ReadIbpicpDatas(QVariantList filePaths, bool isMegred = false);
+
 private:
+    bool ReadIbpicpData(QString filePath, bool isMegred = false);
+    bool ReadBsonData(QString filePath);
+    void MegredUserData();
+
     QVariantList m_userData;
-    //QCustomPlot *m_Multichannel = nullptr;
+    QMap<QString, UserInfo> m_userInfoMap;
 };
 #endif // IBPICPDATACONTROL_H

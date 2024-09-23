@@ -3,6 +3,10 @@
 #include <QDateTime>
 #include <QFont>
 
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
 #include "IbpicpDataControl.h"
 
 namespace {
@@ -79,10 +83,38 @@ namespace {
     }
 }
 
-bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
+bool IbpicpDataControl::ReadIbpicpDatas(QVariantList filePaths, bool isMegred)
 {
     m_userData.clear();
+    for(QVariant value : filePaths)
+    {
+        QString filePath = value.toString();
+        if (filePath.startsWith("file:///"))
+            filePath = filePath.mid(8);
 
+        QFileInfo fileInfo(filePath);
+        if(!fileInfo.isFile())
+        {
+            continue;
+        }
+        if(fileInfo.suffix() == "bson")
+        {
+            ReadBsonData(filePath);
+        }
+        else if(fileInfo.suffix() == "bin")
+        {
+            ReadIbpicpData(filePath, isMegred);
+        }
+    }
+
+    if(isMegred)
+        MegredUserData();
+
+    return true;
+}
+
+bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
+{
     QFile inFile(filePath);
     if(!(inFile.open(QIODevice::ReadOnly)))//打开二进制文件
     {
@@ -102,14 +134,7 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
             continue;
         }
         infoMap.insert("id",id);
-        // if(pUserDataMap.contains(id))
-        // {
-        //     userData = pUserDataMap[id];
-        // }
-        // else
-        // {
-        //     pUserDataMap[id] = userData;
-        // }
+
         QByteArray nameByteArr = infoByteArr.mid(infoIndex, nameAndIdByteLength);
         infoMap.insert("name", GetQStringDataByGBK(nameByteArr, true));
 
@@ -135,11 +160,7 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
         qint64 dateSecs = dateTime.toSecsSinceEpoch();
 
         int dataCnt = GetInt32Data(checkAndTimeByteArr.mid(12, checkByteLength));
-        // check
-        // int index  = GetInt16Data(checkAndTimeByteArr.mid(12, checkByteLength));
-        // int indexCheck  = GetInt16Data(checkAndTimeByteArr.mid(16, checkByteLength));
-        // int totle  = GetInt16Data(checkAndTimeByteArr.mid(20, checkByteLength));
-        // int totleCheck  = GetInt16Data(checkAndTimeByteArr.mid(24, checkByteLength));
+
         QVector<double> timeData;
         QVector<double> temperatureData;
         QVector<double> pressureData;
@@ -148,7 +169,6 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
         {
             QByteArray valueArr = dataByteArr.mid(j * 10, 2);
             double preValue = (double)GetInt16Data(valueArr) / 100.0;
-            //qDebug() << "preValue  " << j <<" == "<< valueArr << " -> " << preValue;
             if(preValue <= -50 || preValue > 150)
             {
                 continue;
@@ -164,7 +184,6 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
             temperatureData.push_back(tempValue);
         }
 
-        qDebug() << " data count == " << timeData.count();
         if(isMegred)
         {
             bool isFind = false;
@@ -225,131 +244,29 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
     return true;
 }
 
-/*
-bool IbpicpDataControl::PaintTable(int index, QCustomPlot *widget)
+bool IbpicpDataControl::ReadBsonData(QString filePath)
 {
-    if(pUserDataVec.length() <= index)
-    {
+    QFile file(filePath);
+
+    if (!file.open(QIODevice::ReadOnly)) {
         return false;
     }
-    UserData curUserData = *pUserDataVec[index];
-    m_Multichannel = new QCustomPlot();
-    m_Multichannel = widget;
-    m_Multichannel->axisRect()->setRangeZoomFactor(0.5, 1);
 
-    m_Multichannel->addGraph();
-    QSharedPointer<QCPAxisTickerDateTime> timer(new QCPAxisTickerDateTime);
-    timer->setDateTimeFormat("yy-MM-dd hh:mm:ss");
-    //设置时间轴 一共几格
-    timer->setTickCount(24);
-    //设置label 旋转35° 横着显示可能显示不全
-    m_Multichannel->xAxis->setTickLabelRotation(35);
-    timer->setTickStepStrategy(QCPAxisTicker::tssMeetTickCount);
-    //设置坐标轴
-    m_Multichannel->xAxis->setTicker(timer);
+    QByteArray fileData = file.readAll();
+    file.close();
 
-    // m_Multichannel->yAxis2->setVisible(true);
-    // m_Multichannel->yAxis2->setRange(30,45);
-    // m_Multichannel->addGraph(m_Multichannel->xAxis,m_Multichannel->yAxis2);
-    m_Multichannel->graph(0)->setPen(QPen(QColor(255,0,0,155)));   //设置曲线颜色
-    m_Multichannel->graph(0)->setName("压力");          //设置曲线名称
-    m_Multichannel->graph(0)->setData(curUserData.timeData, curUserData.temperatureData);
-    // m_Multichannel->graph(1)->setPen(QPen(Qt::red));
-    // m_Multichannel->graph(1)->setName("温度");
-    // m_Multichannel->graph(1)->setData(curUserData.timeData, curUserData.temperatureData);
-    // m_Multichannel->xAxis->setLimits(QCPAxis::iRange, QCPAxis::iRange); // 限制轴的范围
-    // m_Multichannel->yAxis->setLimits(QCPAxis::iRange, QCPAxis::iRange);
-    //x轴设置
-    QSharedPointer<QCPAxisTickerFixed> intTicker_M(new QCPAxisTickerFixed);
-    intTicker_M->setTickStep(1);                                      //设置刻度之间的步长为1
-    intTicker_M->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);   //设置缩放策略
-    // m_Multichannel->xAxis->setTicker(intTicker_M);                    //应用自定义整形ticker,防止使用放大功能时出现相同的x刻度值
-    // m_Multichannel->xAxis->ticker()->setTickCount(11);                //刻度数量
-    // m_Multichannel->xAxis->setNumberFormat("f");                      //x轴刻度值格式
-    // m_Multichannel->xAxis->setNumberPrecision(0);                     //刻度值精度
-    m_Multichannel->xAxis->setLabel("数量(n)");                        //设置标签
-    //m_Multichannel->xAxis->setLabelFont(QFont(font().family(),8));    //设置标签字体大小
-    // m_Multichannel->xAxis->setRange(0, 2000);
-    // m_Multichannel->yAxis->setRange(0, 40);
-    // m_Multichannel->xAxis->setSubTickLength(0,0);                     //子刻度长度
-    // m_Multichannel->xAxis->setTickLength(10,5);                       //主刻度长度
-    //y轴设置
-    m_Multichannel->yAxis->setNumberFormat("f");
-    m_Multichannel->yAxis->setNumberPrecision(2);
-    m_Multichannel->yAxis->setLabel("距离(m)");
-    //m_Multichannel->yAxis->setLabelFont(QFont(font().family(),8));
-    m_Multichannel->yAxis->setTickLength(10,5);
+    QJsonDocument document = QJsonDocument::fromJson(fileData);
 
-    m_Multichannel->setInteractions(QCP::iRangeDrag| QCP::iRangeZoom);   //设置鼠标交互,曲线及图例可点击,可拖动
-    m_Multichannel->legend->setVisible(true);                  //设置图例可见
-    m_Multichannel->legend->setBrush(QColor(255,255,255,0));   //设置背景透明
-    m_Multichannel->axisRect()->insetLayout()->setInsetAlignment(0,Qt::AlignTop|Qt::AlignRight);   //设置图例居右上
+    if (document.isArray()) {
+        QJsonArray jsonArray = document.array();
+        qDebug() << "JSON Array:" << jsonArray;
+    }
 
-
-    // QLinearGradient axisRectGradient;
-    // axisRectGradient.setStart(0, 0);
-    // axisRectGradient.setFinalStop(0, m_Multichannel->height());
-    // axisRectGradient.setColorAt(0, QColor(255,0,0,20));
-    // axisRectGradient.setColorAt(1, QColor(255,0,0,0));
-    // m_Multichannel->graph(0)->setBrush(QBrush(axisRectGradient));
-
-    m_Multichannel->graph(0)->rescaleAxes();
-    m_Multichannel->replot();
-    //m_Multichannel->graph(1)->setBrush(QBrush(QColor(0,255,255,150))); //蓝色，透明度150
-
-    // //游标
-    // tracer = new QCPItemTracer(m_Multichannel);       //生成游标
-    // m_Multichannel->setMouseTracking(true);           //让游标自动随鼠标移动，若不想游标随鼠标动，则禁止
-    // //tracer->setPen(QPen(QBrush(QColor(Qt::red)),Qt::DashLine));   //虚线游标
-    // tracer->setPen(QPen(Qt::red));                    //圆圈轮廓颜色
-    // tracer->setBrush(QBrush(Qt::red));                //圆圈圈内颜色
-    // tracer->setStyle(QCPItemTracer::tsCircle);        //圆圈
-    // tracer->setSize(5);
-    // //tracer->setVisible(false);                      //设置可见性
-
-    // //游标说明
-    // tracerLabel = new QCPItemText(m_Multichannel);                     //生成游标说明
-    // //tracerLabel->setVisible(false);                                  //设置可见性
-    // tracerLabel->setLayer("overlay");                                  //设置图层为overlay，因为需要频繁刷新
-    // tracerLabel->setPen(QPen(Qt::black));                              //设置游标说明颜色
-    // tracerLabel->setPositionAlignment(Qt::AlignLeft | Qt::AlignTop);   //左上
-    // tracerLabel->setPadding(QMargins(4,4,4,4));                        //文字距离边框几个像素
-    // tracerLabel->position->setParentAnchor(tracer->position);          //设置标签自动随着游标移动
-
-    // //选择不同的曲线
-    // connect(m_Multichannel,SIGNAL(selectionChangedByUser()),this,SLOT(slot_SelectionChanged()));
-
-    // //初始化QRubberBand   //矩形放大
-    // rubberBand = new QRubberBand(QRubberBand::Rectangle,m_Multichannel);
-    // //连接鼠标事件发出的信号，实现绑定
-    // connect(m_Multichannel,SIGNAL(mousePress(QMouseEvent*)),this,SLOT(mousePress(QMouseEvent*)));
-    // connect(m_Multichannel,SIGNAL(mouseMove(QMouseEvent*)),this,SLOT(mouseMove(QMouseEvent*)));
-    // connect(m_Multichannel,SIGNAL(mouseRelease(QMouseEvent*)),this,SLOT(mouseRelease(QMouseEvent*)));
-
-    // //lambda表达式 mouseMoveEvent
-    // connect(m_Multichannel,&QCustomPlot::mouseMove,[=](QMouseEvent* event){
-    //     if(tracer->graph() == nullptr)
-    //     {
-    //         return;
-    //     }
-    //     if(tracer->graph()->data()->isEmpty())
-    //     {
-    //         return;
-    //     }
-    //     if(tracer->visible())
-    //     {
-    //         if(tracerGraph)
-    //         {
-    //             double x = m_Multichannel->xAxis->pixelToCoord(event->pos().x());
-    //             tracer->setGraphKey(x);             //将游标横坐标设置成刚获得的横坐标数据x
-    //             //tracer->setInterpolating(true);   //自动计算y值,若只想看已有点,不需要这个
-    //             tracer->updatePosition();           //使得刚设置游标的横纵坐标位置生效
-    //             tracerLabel->setText(QString("x:%1\ny:%2").arg(tracer->position->key()).arg(tracer->position->value()));
-    //             m_Multichannel->replot(QCustomPlot::rpQueuedReplot);
-    //         }
-    //     }
-    // });
-    m_Multichannel->savePdf("D:\\tianjinICPdata.pdf");
     return true;
 }
-*/
+
+
+void IbpicpDataControl::MegredUserData()
+{
+
+}

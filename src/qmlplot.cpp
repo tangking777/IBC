@@ -111,26 +111,15 @@ void BasePlotItem::routeMouseEvents( QMouseEvent* event )
         }
         else if (event->buttons() & Qt::RightButton)
         {
-            // double x = getPlot()->xAxis->pixelToCoord(e->pos().x());
-            // tracer->setGraph(getPlot()->graph(0));
-            // tracer->setGraphKey(x);
-            // tracer->setInterpolating(true);
-            // tracer->updatePosition();
-            // //更新游标说明的内容
-            // double xValue = tracer->position->key();
-            // double yValue = tracer->position->value();
-            // tracerLabel->setText(QString("x = %1, y = %2").arg(xValue).arg(yValue));
-
-            // m_refer_lineV->point1->setCoords(xValue, yValue);
-            // m_refer_lineV->point2->setCoords(xValue, 0);
-            // getPlot()->replot(); //重绘
-
-
+            m_refer_lineV->setVisible(true);
             m_tracer_temp->setVisible(true);
-            m_tracer_power->setVisible(true);
-
             m_cur_Label_temp->setVisible(true);
-            m_cur_Label_power->setVisible(true);
+
+            if(getPlot()->yAxis2->visible())
+            {
+                m_tracer_power->setVisible(true);
+                m_cur_Label_power->setVisible(true);
+            }
 
             double cur_x = getPlot()->xAxis->pixelToCoord(event->pos().x());
 
@@ -232,8 +221,8 @@ void CustomPlotItem::initCustomPlot()
 {
     updateCustomPlotSize();
 
-    m_TempGraph = getPlot()->addGraph();
-    m_PresGraph = getPlot()->addGraph(getPlot()->xAxis, getPlot()->yAxis2);
+    m_PresGraph = getPlot()->addGraph();
+    m_TempGraph = getPlot()->addGraph(getPlot()->xAxis, getPlot()->yAxis2);
     m_TempGraph->setPen(QPen(Qt::red));
     m_TempGraph->setName("温度 °C");
     m_PresGraph->setPen(QPen(Qt::blue));
@@ -247,16 +236,16 @@ void CustomPlotItem::initCustomPlot()
 
     getPlot()->yAxis->setNumberFormat("f");
     getPlot()->yAxis->setNumberPrecision(2);
-    getPlot()->yAxis->setLabel("温度 °C");
+    getPlot()->yAxis->setLabel("压力 mmHg");
     getPlot()->yAxis->setTickLength(10,5);
-    getPlot()->yAxis->setRange(35, 42);
+    getPlot()->yAxis->setRange(20, 30);
 
-    getPlot()->yAxis2->setVisible(true);
+    getPlot()->yAxis2->setVisible(false);
     getPlot()->yAxis2->setNumberFormat("f");
     getPlot()->yAxis2->setNumberPrecision(2);
-    getPlot()->yAxis2->setLabel("压力 mmHg");
+    getPlot()->yAxis2->setLabel("温度 °C");
     getPlot()->yAxis2->setTickLength(10,5);
-    getPlot()->yAxis2->setRange(20, 30);
+    getPlot()->yAxis2->setRange(35, 42);
 
     getPlot()->setInteractions(QCP::iRangeDrag|QCP::iRangeZoom);
     getPlot()->legend->setVisible(true);
@@ -288,20 +277,23 @@ void CustomPlotItem::initCustomPlot()
     m_cur_Label_temp = new QCPItemText(getPlot());
     m_cur_Label_temp->position->setParentAnchor(m_tracer_temp->position);
     m_cur_Label_temp->setFont(QFont(qApp->font().family(), 12));
-    m_cur_Label_temp->setColor(Qt::blue);
+    m_cur_Label_temp->setColor(Qt::white);
     m_cur_Label_temp->setVisible(false);
+    m_cur_Label_temp->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_cur_Label_temp->setBrush(QBrush(Qt::red));
+
 
     m_cur_Label_power = new QCPItemText(getPlot());
     m_cur_Label_power->position->setParentAnchor(m_tracer_power->position);
     m_cur_Label_power->setFont(QFont(qApp->font().family(), 12));
-    m_cur_Label_power->setColor(Qt::red);
+    m_cur_Label_power->setColor(Qt::white);
     m_cur_Label_power->setVisible(false);
-
-    m_cur_Label_temp->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_cur_Label_power->setBrush(QBrush(Qt::blue));
 
     m_refer_lineV = new QCPItemStraightLine(getPlot());
     m_refer_lineV->setPen(QPen(Qt::red, 1, Qt::DashLine));
+    m_refer_lineV->setVisible(false);
 
     connect( getPlot(), &QCustomPlot::afterReplot, this, &CustomPlotItem::onCustomReplot );
 
@@ -327,6 +319,7 @@ void CustomPlotItem::setVoltageGraphVisible(bool value)
 {
     if(m_TempGraph){
         m_TempGraph->setVisible(value);
+        getPlot()->yAxis2->setVisible(value);
     }
 }
 
@@ -340,12 +333,12 @@ void CustomPlotItem::setCurrentGraphVisible(bool value)
 
 void CustomPlotItem::setVoltageRange(double min, double max)
 {
-    getPlot()->yAxis->setRange(min, max);
+    getPlot()->yAxis2->setRange(min, max);
 }
 
 void CustomPlotItem::setCurrentRange(double min, double max)
 {
-    getPlot()->yAxis2->setRange(min, max);
+    getPlot()->yAxis->setRange(min, max);
 }
 
 void CustomPlotItem::setTimeRange(double min, double max)
@@ -367,32 +360,3 @@ void CustomPlotItem::exportPdf(const QString path)
 {
     getPlot()->savePdf(path);
 }
-
-// void CustomPlotItem::mousePressEvent( QMouseEvent* event )
-// {
-//     qDebug() << "m_TempGraph" << m_TempGraph->data()->size();
-//     qDebug() << "m_PresGraph" << m_PresGraph->data()->size();
-
-//     m_tracer_temp->setVisible(true);
-//     QPointF CPoint = event->pos();
-
-
-//     int16_t cur_x = getPlot()->xAxis->pixelToCoord(CPoint.x());
-
-//     double y_value = 37;//m_PresGraph->getData().at(cur_x);
-//     m_tracer_temp->setGraphKey(cur_x);
-//     m_tracer_temp->position->setCoords(cur_x, y_value);
-//     m_cur_Label_temp->position->setCoords(0, 10);
-//     m_cur_Label_temp->setText(QString::number(y_value, 'f', 1));
-
-//     double y_value1 = 40;//m_vect_power_all.at(cur_x);
-//     m_tracer_power->setGraphKey(cur_x);
-//     m_tracer_power->position->setCoords(cur_x, y_value1);
-//     m_cur_Label_power->position->setCoords(0, 10);
-//     m_cur_Label_power->setText(QString::number(y_value1, 'f', 1));
-
-//     m_refer_lineV->point1->setCoords(cur_x, y_value);
-//     m_refer_lineV->point2->setCoords(cur_x, y_value1);
-
-//     replot();
-// }
