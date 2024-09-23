@@ -58,6 +58,8 @@ public:
 public slots:
     Q_INVOKABLE void setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values);
     Q_INVOKABLE void setCurrentGraphData(const QVector<double> &keys, const QVector<double> &values);
+    Q_INVOKABLE void setVoltageGraphVisible(bool value);
+    Q_INVOKABLE void setCurrentGraphVisible(bool value);
     Q_INVOKABLE void setVoltageRange(double min, double max);
     Q_INVOKABLE void setCurrentRange(double min, double max);
     Q_INVOKABLE void setTimeRange(double min, double max);

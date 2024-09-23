@@ -235,9 +235,9 @@ void CustomPlotItem::initCustomPlot()
     m_TempGraph = getPlot()->addGraph();
     m_PresGraph = getPlot()->addGraph(getPlot()->xAxis, getPlot()->yAxis2);
     m_TempGraph->setPen(QPen(Qt::red));
-    m_TempGraph->setName("温度");
+    m_TempGraph->setName("温度 °C");
     m_PresGraph->setPen(QPen(Qt::blue));
-    m_PresGraph->setName("压强(Pa)");
+    m_PresGraph->setName("压力 mmHg");
 
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
     dateTicker->setDateTimeFormat("yy-MM-dd\nhh:mm:ss");
@@ -247,14 +247,14 @@ void CustomPlotItem::initCustomPlot()
 
     getPlot()->yAxis->setNumberFormat("f");
     getPlot()->yAxis->setNumberPrecision(2);
-    getPlot()->yAxis->setLabel("温度(C)");
+    getPlot()->yAxis->setLabel("温度 °C");
     getPlot()->yAxis->setTickLength(10,5);
     getPlot()->yAxis->setRange(35, 42);
 
     getPlot()->yAxis2->setVisible(true);
     getPlot()->yAxis2->setNumberFormat("f");
     getPlot()->yAxis2->setNumberPrecision(2);
-    getPlot()->yAxis2->setLabel("压强(Pa)");
+    getPlot()->yAxis2->setLabel("压力 mmHg");
     getPlot()->yAxis2->setTickLength(10,5);
     getPlot()->yAxis2->setRange(20, 30);
 
@@ -310,14 +310,32 @@ void CustomPlotItem::initCustomPlot()
 
 void CustomPlotItem::setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values)
 {
-    if(m_TempGraph)
+    if(m_TempGraph){
         m_TempGraph->setData(keys, values);
+    }
 }
 
 void CustomPlotItem::setCurrentGraphData(const QVector<double> &keys, const QVector<double> &values)
 {
     if(m_PresGraph)
+    {
         m_PresGraph->setData(keys, values);
+    }
+}
+
+void CustomPlotItem::setVoltageGraphVisible(bool value)
+{
+    if(m_TempGraph){
+        m_TempGraph->setVisible(value);
+    }
+}
+
+void CustomPlotItem::setCurrentGraphVisible(bool value)
+{
+    if(m_PresGraph)
+    {
+        m_PresGraph->setVisible(value);
+    }
 }
 
 void CustomPlotItem::setVoltageRange(double min, double max)

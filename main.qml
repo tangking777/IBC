@@ -7,7 +7,7 @@ import QtQuick.Controls 2.5
 import "./qml/"
 import IbpicpDataControl 1.0
 import CustomPlot 1.0
-
+import FileFuncs 1.0
 
 ApplicationWindow  {
     id: root
@@ -48,14 +48,68 @@ ApplicationWindow  {
             dateList = dayList;
 
             myplot.setCurrentGraphData(timeData, pressureData);
-            myplot.setVoltageGraphData(timeData, temperatureData);
+            var id = data["id"];
+            if(id.endsWith("P"))
+            {
+                myplot.setVoltageGraphVisible(false);
+            }
+            else
+            {
+                myplot.setVoltageGraphVisible(true);
+                myplot.setVoltageGraphData(timeData, temperatureData);
+            }
             myplot.rescaleAxes()
             myplot.replot();
         }
+        iCalcValue();
     }
 
     property bool showTempData: false
     property bool showPresData: false
+    property double minPres: 0
+    property double maxPres: 0
+    property double avgPres: 0
+    property double minTemp: 0
+    property double maxTemp: 0
+    property double avgTemp: 0
+
+
+    function iCalcValue()
+    {
+        var data = userDataList[cur_user_index];
+        var timeData = data["timeData"];
+        var pressureData = data["pressureData"];
+        var temperatureData = data["temperatureData"];
+
+        var maxPresValue = -999999;
+        var minPresValue = 999999;
+        var sumPresValue = 0;
+        for(var i = 0; i < pressureData.length; i++)
+        {
+            var pres = pressureData[i];
+            maxPresValue = Math.max(pres, maxPresValue);
+            minPresValue = Math.min(pres, minPresValue);
+            sumPresValue += pres;
+        }
+        maxPres = maxPresValue.toFixed(2);
+        minPres = minPresValue.toFixed(2);
+        avgPres = (sumPresValue / pressureData.length).toFixed(2);
+
+
+        var maxTempValue = -999999;
+        var minTempValue = 999999;
+        var sumTempValue = 0;
+        for(var i = 0; i < temperatureData.length; i++)
+        {
+            var temp = temperatureData[i];
+            maxTempValue = Math.max(temp, maxTempValue);
+            minTempValue = Math.min(temp, minTempValue);
+            sumTempValue += temp;
+        }
+        maxTemp = maxTempValue.toFixed(2);
+        minTemp = minTempValue.toFixed(2);
+        avgTemp = (sumTempValue / temperatureData.length).toFixed(2);
+    }
 
     function updateTimeRanger()
     {
@@ -133,12 +187,11 @@ ApplicationWindow  {
         var sh =  Screen.desktopAvailableHeight
 
         if(sw < root.width || sh < root.height){
-            iMinWidth = sw*0.66;
-            iMinHeight = sh*0.66;
+            iMinWidth = 1920*0.85;
+            iMinHeight = 1080*0.85;
             root.showMaximized();
             isMaxShow = true;
         }
-        console.log("aq" ,FileDialog.OpenFile,  outputFileDialog.fileMode == FileDialog.OpenFile)
     }
 
     FileDialog {
@@ -148,6 +201,7 @@ ApplicationWindow  {
         onAccepted: {
             var path = inputFileDialog.fileUrl.toString().replace("file:///", "");
             ibpicpDataControl.ReadIbpicpData(path, true);
+            cur_user_index = -1;
         }
     }
 
@@ -163,9 +217,27 @@ ApplicationWindow  {
         }
     }
 
+    FileDialog {
+        id: outputTextDialog
+        title: "导出文本"
+        nameFilters: ["files (*.bson)"]
+        //fileMode: FileDialog.SaveFile
+        selectExisting: false
+        onAccepted: {
+            var path = outputTextDialog.fileUrl.toString().replace("file:///", "")
+            var str = JSON.stringify(userDataList);
+            console.log("path", path);
+            ff.saveStringToFile(str, path);
+        }
+    }
+
     MsgDialog{
         id : msg
         z : 99999
+    }
+
+    FileFuncs{
+        id : ff
     }
 
     IbpicpDataControl
@@ -398,12 +470,12 @@ ApplicationWindow  {
                                                     }
 
                                                     Column{
-                                                        width: parent.width - 60 - 60 - parent.spacing * 2
+                                                        width: parent.width - 60 - parent.spacing
                                                         height: parent.height
                                                         Text {
                                                             width: parent.width
                                                             height: parent.height / 2
-                                                            text: "姓名: " + modelData.name
+                                                            text: "ID: " + modelData.id
                                                             font.pixelSize: 14
                                                             color: cur_user_index === index ? "#000000" : "#999999"
                                                             font.family: "微软雅黑"
@@ -413,8 +485,8 @@ ApplicationWindow  {
                                                         Text {
                                                             width: parent.width
                                                             height: parent.height / 2
-                                                            text: "ID: " + modelData.id
-                                                            font.pixelSize: 12
+                                                            text: "Item: " + modelData.name
+                                                            font.pixelSize: 14
                                                             color: cur_user_index === index ? "#000000" : "#999999"
                                                             font.family: "微软雅黑"
                                                             horizontalAlignment: Text.AlignLeft
@@ -422,30 +494,30 @@ ApplicationWindow  {
                                                         }
                                                     }
 
-                                                    Column{
-                                                        width: 60
-                                                        height: parent.height
-                                                        Text {
-                                                            width: parent.width
-                                                            height: parent.height / 2
-                                                            text: "性别: " + (modelData.isMan ? "男" : "女")
-                                                            font.pixelSize: 14
-                                                            color: cur_user_index === index ? "#000000" : "#999999"
-                                                            font.family: "微软雅黑"
-                                                            horizontalAlignment: Text.AlignLeft
-                                                            verticalAlignment: Text.AlignVCenter
-                                                        }
-                                                        Text {
-                                                            width: parent.width
-                                                            height: parent.height / 2
-                                                            text: "年龄: " + modelData.age
-                                                            font.pixelSize: 14
-                                                            color: cur_user_index === index ? "#000000" : "#999999"
-                                                            font.family: "微软雅黑"
-                                                            horizontalAlignment: Text.AlignLeft
-                                                            verticalAlignment: Text.AlignVCenter
-                                                        }
-                                                    }
+                                                    // Column{
+                                                    //     width: 60
+                                                    //     height: parent.height
+                                                    //     Text {
+                                                    //         width: parent.width
+                                                    //         height: parent.height / 2
+                                                    //         text: "性别: " + (modelData.isMan ? "男" : "女")
+                                                    //         font.pixelSize: 14
+                                                    //         color: cur_user_index === index ? "#000000" : "#999999"
+                                                    //         font.family: "微软雅黑"
+                                                    //         horizontalAlignment: Text.AlignLeft
+                                                    //         verticalAlignment: Text.AlignVCenter
+                                                    //     }
+                                                    //     Text {
+                                                    //         width: parent.width
+                                                    //         height: parent.height / 2
+                                                    //         text: "年龄: " + modelData.age
+                                                    //         font.pixelSize: 14
+                                                    //         color: cur_user_index === index ? "#000000" : "#999999"
+                                                    //         font.family: "微软雅黑"
+                                                    //         horizontalAlignment: Text.AlignLeft
+                                                    //         verticalAlignment: Text.AlignVCenter
+                                                    //     }
+                                                    // }
                                                 }
                                             }
 
@@ -678,9 +750,10 @@ ApplicationWindow  {
                                 verticalAlignment: Text.AlignVCenter
                             }
                             Text {
+                                id: maxText
                                 width: 40
                                 height: parent.height
-                                text: "108"
+                                text: showTempData ? maxTemp : maxPres
                                 color: "#0A6086"
                                 font.pixelSize: 20
                                 font.family: "微软雅黑"
@@ -709,6 +782,7 @@ ApplicationWindow  {
                         {
                             anchors.fill: parent
                             Text {
+                                id: minText
                                 width: 80
                                 height: parent.height
                                 text: qsTr("最小值")
@@ -721,7 +795,7 @@ ApplicationWindow  {
                             Text {
                                 width: 40
                                 height: parent.height
-                                text: "108"
+                                text: showTempData ? minTemp : minPres
                                 color: "#BA6C00"
                                 font.pixelSize: 20
                                 font.family: "微软雅黑"
@@ -760,9 +834,10 @@ ApplicationWindow  {
                                 verticalAlignment: Text.AlignVCenter
                             }
                             Text {
+                                id: averageText
                                 width: 40
                                 height: parent.height
-                                text: "108"
+                                text: showTempData ? avgTemp : avgPres
                                 color: "#127070"
                                 font.pixelSize: 20
                                 font.family: "微软雅黑"
@@ -862,7 +937,7 @@ ApplicationWindow  {
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
-                                myplot.replot();
+                                outputTextDialog.open();
                             }
                         }
                     }

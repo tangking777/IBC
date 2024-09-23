@@ -155,7 +155,7 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
             }
             QByteArray valueArr2 = dataByteArr.mid(j * 10 + 4, 2);
             double tempValue = (double)GetInt16Data(valueArr2) / 10.0;
-            if(tempValue < 30 || tempValue > 50)
+            if(tempValue > 50)
             {
                 continue;
             }
@@ -174,14 +174,28 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
                 if(dataMap["id"].toString() == id)
                 {
                     QVector<double> existsTimeData = dataMap["timeData"].value<QVector<double>>();
+                    double oldEndTime = existsTimeData[existsTimeData.length() - 1];
+                    double newStartTime = timeData[0];
+                    QVector<double> blankTimeVec;
+                    QVector<double> blankPreVec;
+                    QVector<double> blankTemVec;
+                    for(int p = (int)oldEndTime + 1; p < (int)newStartTime; p++)
+                    {
+                        blankTimeVec.push_back(p);
+                        blankPreVec.push_back(0.0);
+                        blankTemVec.push_back(0.0);
+                    }
+                    existsTimeData.append(blankTimeVec);
                     existsTimeData.append(timeData);
                     dataMap.insert("timeData", QVariant::fromValue(existsTimeData));
 
                     QVector<double> existsPressureData = dataMap["pressureData"].value<QVector<double>>();
+                    existsPressureData.append(blankPreVec);
                     existsPressureData.append(pressureData);
                     dataMap.insert("pressureData", QVariant::fromValue(existsPressureData));
 
                     QVector<double> existsTemperatureData = dataMap["temperatureData"].value<QVector<double>>();
+                    existsTemperatureData.append(blankTemVec);
                     existsTemperatureData.append(temperatureData);
                     dataMap.insert("temperatureData", QVariant::fromValue(existsTemperatureData));
 
