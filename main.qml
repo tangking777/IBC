@@ -61,7 +61,6 @@ ApplicationWindow  {
             myplot.rescaleAxes()
             myplot.replot();
         }
-        // iCalcValue();
     }
 
     property bool showTempData: false
@@ -213,9 +212,8 @@ ApplicationWindow  {
         nameFilters: ["files (*.bin)"]
         selectMultiple: true
         onAccepted: {
-            // console.log("aaa", fileUrls);
-            // var path = inputFileDialog.fileUrl.toString().replace("file:///", "");
-            ibpicpDataControl.ReadIbpicpDatas(fileUrls, true);
+            var filePathStr = inputFileDialog.fileUrls.toString();
+            ibpicpDataControl.ReadIbpicpDatas(filePathStr.split(), true);
             cur_user_index = -1;
         }
     }

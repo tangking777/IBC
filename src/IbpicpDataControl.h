@@ -13,9 +13,11 @@
 struct UserInfo
 {
     QString name;
-    QVector<double> TimeVec;
-    QVector<double> PreVec;
-    QVector<double> TempVec;
+    qint16 age;
+    bool isMan;
+    QVector<double> timeVec;
+    QVector<double> preVec;
+    QVector<double> tempVec;
 };
 
 class IbpicpDataControl : public QObject
@@ -34,11 +36,11 @@ public slots:
     bool ReadIbpicpDatas(QVariantList filePaths, bool isMegred = false);
 
 private:
-    bool ReadIbpicpData(QString filePath, bool isMegred = false);
+    bool ReadIbpicpData(QString filePath);
     bool ReadBsonData(QString filePath);
     void MegredUserData();
 
     QVariantList m_userData;
-    QMap<QString, UserInfo> m_userInfoMap;
+    QMap<QString, QVector<UserInfo>> m_userInfoMap;
 };
 #endif // IBPICPDATACONTROL_H

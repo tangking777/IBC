@@ -6,7 +6,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-
+#include <QtAlgorithms>
 #include "IbpicpDataControl.h"
 
 namespace {
@@ -81,11 +81,16 @@ namespace {
     {
         return QString::fromUtf8(binaryData);
     }
+
+    bool UserInfoComparison(const UserInfo& a, const UserInfo& b) {
+        return a.timeVec[0] < b.timeVec[0];
+    }
 }
 
 bool IbpicpDataControl::ReadIbpicpDatas(QVariantList filePaths, bool isMegred)
 {
     m_userData.clear();
+    m_userInfoMap.clear();
     for(QVariant value : filePaths)
     {
         QString filePath = value.toString();
@@ -103,17 +108,18 @@ bool IbpicpDataControl::ReadIbpicpDatas(QVariantList filePaths, bool isMegred)
         }
         else if(fileInfo.suffix() == "bin")
         {
-            ReadIbpicpData(filePath, isMegred);
+            ReadIbpicpData(filePath);
         }
     }
 
     if(isMegred)
         MegredUserData();
 
+    emit userDataChanged();
     return true;
 }
 
-bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
+bool IbpicpDataControl::ReadIbpicpData(QString filePath)
 {
     QFile inFile(filePath);
     if(!(inFile.open(QIODevice::ReadOnly)))//打开二进制文件
@@ -125,25 +131,25 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
 
     for(int i = 0; i < maxUserCnt; i++)
     {
-        QVariantMap infoMap;
+        UserInfo infoMap;
         long infoIndex = i * infoByteLength;
         QByteArray idByteArr = infoByteArr.mid(infoIndex + nameAndIdByteLength * 2 + 2, 16);//infoByteArr.mid(infoIndex + nameAndIdByteLength, nameAndIdByteLength);
-        QString id = GetQStringData(idByteArr);
+        const QString id = GetQStringData(idByteArr);
         if(id.isEmpty())
         {
             continue;
         }
-        infoMap.insert("id",id);
 
         QByteArray nameByteArr = infoByteArr.mid(infoIndex, nameAndIdByteLength);
-        infoMap.insert("name", GetQStringDataByGBK(nameByteArr, true));
+        infoMap.name = GetQStringDataByGBK(nameByteArr, true);
 
         QByteArray sexByteArr = infoByteArr.mid(infoIndex + nameAndIdByteLength * 2
                                                 , ageAndSexByteLength);
-        infoMap.insert("isMan", GetUIntData(sexByteArr) == 0);
+        infoMap.isMan = GetUIntData(sexByteArr) == 0;
+
         QByteArray ageByteArr = infoByteArr.mid(infoIndex + nameAndIdByteLength * 2 + 1
                                                 , ageAndSexByteLength);
-        infoMap.insert("age", GetUIntData(ageByteArr));
+        infoMap.age = GetUIntData(ageByteArr);
 
 
         QByteArray dataByteArr = inFile.read(maxDataCnt * dataByteLength);
@@ -183,63 +189,18 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath, bool isMegred)
             pressureData.push_back(preValue);
             temperatureData.push_back(tempValue);
         }
-
-        if(isMegred)
+        infoMap.timeVec = timeData;
+        infoMap.preVec = pressureData;
+        infoMap.tempVec = temperatureData;
+        if(m_userInfoMap.contains(id))
         {
-            bool isFind = false;
-            for(int i = 0; i < m_userData.count(); i++)
-            {
-                QVariantMap dataMap = m_userData[i].toMap();
-                if(dataMap["id"].toString() == id)
-                {
-                    QVector<double> existsTimeData = dataMap["timeData"].value<QVector<double>>();
-                    double oldEndTime = existsTimeData[existsTimeData.length() - 1];
-                    double newStartTime = timeData[0];
-                    QVector<double> blankTimeVec;
-                    QVector<double> blankPreVec;
-                    QVector<double> blankTemVec;
-                    for(int p = (int)oldEndTime + 1; p < (int)newStartTime; p++)
-                    {
-                        blankTimeVec.push_back(p);
-                        blankPreVec.push_back(0.0);
-                        blankTemVec.push_back(0.0);
-                    }
-                    existsTimeData.append(blankTimeVec);
-                    existsTimeData.append(timeData);
-                    dataMap.insert("timeData", QVariant::fromValue(existsTimeData));
-
-                    QVector<double> existsPressureData = dataMap["pressureData"].value<QVector<double>>();
-                    existsPressureData.append(blankPreVec);
-                    existsPressureData.append(pressureData);
-                    dataMap.insert("pressureData", QVariant::fromValue(existsPressureData));
-
-                    QVector<double> existsTemperatureData = dataMap["temperatureData"].value<QVector<double>>();
-                    existsTemperatureData.append(blankTemVec);
-                    existsTemperatureData.append(temperatureData);
-                    dataMap.insert("temperatureData", QVariant::fromValue(existsTemperatureData));
-
-                    m_userData[i] = dataMap;
-                    isFind = true;
-                }
-            }
-
-            if(!isFind)
-            {
-                infoMap.insert("timeData", QVariant::fromValue(timeData));
-                infoMap.insert("pressureData", QVariant::fromValue(pressureData));
-                infoMap.insert("temperatureData", QVariant::fromValue(temperatureData));
-                m_userData.push_back(infoMap);
-            }
+            m_userInfoMap[id].push_back(infoMap);
         }
         else
         {
-            infoMap.insert("timeData", QVariant::fromValue(timeData));
-            infoMap.insert("pressureData", QVariant::fromValue(pressureData));
-            infoMap.insert("temperatureData", QVariant::fromValue(temperatureData));
-            m_userData.push_back(infoMap);
+            m_userInfoMap[id] = QVector<UserInfo>{infoMap};
         }
     }
-    emit userDataChanged();
     inFile.close();
     return true;
 }
@@ -259,7 +220,27 @@ bool IbpicpDataControl::ReadBsonData(QString filePath)
 
     if (document.isArray()) {
         QJsonArray jsonArray = document.array();
-        qDebug() << "JSON Array:" << jsonArray;
+        QVariantList dataList =  jsonArray.toVariantList();
+        for(QVariant data : dataList)
+        {
+            UserInfo infoMap;
+            QMap<QString, QVariant> dataMap = data.toMap();
+            const QString id = dataMap["id"].toString();
+            infoMap.name = dataMap["name"].toString();
+            infoMap.isMan = dataMap["isMan"].toBool();
+            infoMap.age = dataMap["isMan"].toUInt();
+            infoMap.timeVec = dataMap["timeData"].value<QVector<double>>();
+            infoMap.preVec = dataMap["pressureData"].value<QVector<double>>();
+            infoMap.tempVec = dataMap["temperatureData"].value<QVector<double>>();
+            if(m_userInfoMap.contains(id))
+            {
+                m_userInfoMap[id].push_back(infoMap);
+            }
+            else
+            {
+                m_userInfoMap[id] = QVector<UserInfo>{infoMap};
+            }
+        }
     }
 
     return true;
@@ -268,5 +249,56 @@ bool IbpicpDataControl::ReadBsonData(QString filePath)
 
 void IbpicpDataControl::MegredUserData()
 {
+    for(const QString& id : m_userInfoMap.keys())
+    {
+        QVariantMap infoMap;
+        QVector<UserInfo> dataVec = m_userInfoMap[id];
+        if(dataVec.size() == 0)
+            continue;
 
+        infoMap.insert("id", id);
+        infoMap.insert("name", dataVec[0].name);
+        infoMap.insert("age", dataVec[0].age);
+        infoMap.insert("isMan", dataVec[0].isMan);
+
+        // sort by time
+        qSort(dataVec.begin(), dataVec.end(), UserInfoComparison);
+
+        // Fill blank data & megre
+        QVector<double> timeData;
+        QVector<double> temperatureData;
+        QVector<double> pressureData;
+
+        double lastTime = dataVec[0].timeVec[0];
+        for(UserInfo userInfo : dataVec)
+        {
+            double newStartTime = userInfo.timeVec[0];
+            QVector<double> blankTimeVec;
+            QVector<double> blankPreVec;
+            QVector<double> blankTemVec;
+            if(newStartTime > lastTime)
+            {
+                for(int p = (int)lastTime + 1; p < (int)newStartTime; p++)
+                {
+                    blankTimeVec.push_back(p);
+                    blankPreVec.push_back(0.0);
+                    blankTemVec.push_back(0.0);
+                }
+            }
+            timeData.append(blankTimeVec);
+            timeData.append(userInfo.timeVec);
+
+            pressureData.append(blankPreVec);
+            pressureData.append(userInfo.preVec);
+
+            temperatureData.append(blankTemVec);
+            temperatureData.append(userInfo.tempVec);
+        }
+
+        infoMap.insert("timeData", QVariant::fromValue(timeData));
+        infoMap.insert("pressureData", QVariant::fromValue(pressureData));
+        infoMap.insert("temperatureData", QVariant::fromValue(temperatureData));
+
+        m_userData.push_back(infoMap);
+    }
 }
