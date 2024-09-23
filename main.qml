@@ -209,11 +209,11 @@ ApplicationWindow  {
     FileDialog {
         id: inputFileDialog
         title: "选择数据文件"
-        nameFilters: ["files (*.bin)"]
+        nameFilters: ["files (*.bin, *.bson)"]
         selectMultiple: true
         onAccepted: {
             var filePathStr = inputFileDialog.fileUrls.toString();
-            ibpicpDataControl.ReadIbpicpDatas(filePathStr.split(), true);
+            ibpicpDataControl.ReadIbpicpDatas(filePathStr.split(","), true);
             cur_user_index = -1;
         }
     }
