@@ -13,5 +13,6 @@
         <file>Res/export.png</file>
         <file>Res/exportPDF.png</file>
         <file>Res/openFile.png</file>
+        <file>qml/LabelSettingPop.qml</file>
     </qresource>
 </RCC>

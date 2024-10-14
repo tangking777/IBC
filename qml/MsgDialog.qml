@@ -44,7 +44,7 @@ Item {
             radius: 5
         }
         header: Rectangle {
-            width: dialog.width7
+            width: dialog.width
             height: 50
             border.color: backGroundColor
             radius: 5

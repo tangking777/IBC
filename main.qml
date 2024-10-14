@@ -28,6 +28,7 @@ ApplicationWindow  {
 
     property var userDataList
     property int cur_user_index: -1
+    property bool isSelectLabel: false
     onCur_user_indexChanged:
     {
         if(userDataList && cur_user_index > -1 && userDataList.length > cur_user_index)
@@ -45,6 +46,7 @@ ApplicationWindow  {
             etimeText.text = dateToString(endDate);
             dc.dayList = dayList;
             endDc.dayList = dayList;
+            labelDc.dayList = dayList;
             dateList = dayList;
 
             myplot.setCurrentGraphData(timeData, pressureData);
@@ -209,7 +211,7 @@ ApplicationWindow  {
     FileDialog {
         id: inputFileDialog
         title: "选择数据文件"
-        nameFilters: ["files (*.bin, *.bson)"]
+        nameFilters: ["Data files (*.bin *.bson)"]
         selectMultiple: true
         onAccepted: {
             var filePathStr = inputFileDialog.fileUrls.toString();
@@ -253,6 +255,223 @@ ApplicationWindow  {
         id : ff
     }
 
+    Popup {
+        id: labelSettingPop
+        width: 320
+        height: 240
+        anchors.centerIn: parent
+        visible: false
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape
+        Rectangle{
+            id: mainRect
+            anchors.fill: parent
+            color: "#F9F9F9"
+            radius: 5
+            border.color: "#33364460"
+            border.width: 0.5
+            Column{
+                width: parent.width - 20
+                height: parent.height - 20
+                anchors.centerIn : parent
+                spacing: 20
+                Row{
+                    width: parent.width
+                    height: 30
+                    spacing: 20
+                    Text {
+                        width: 40
+                        height: parent.height
+                        text: qsTr("类型: ")
+                        font.pixelSize: 14
+                        font.family: "微软雅黑"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    CheckBox {
+                        id: presBox
+                        text: qsTr("压强")
+                        checked: true
+                        onClicked: {
+                            presBox.checked = true;
+                            tempBox.checked = false;
+                        }
+                    }
+
+                    CheckBox {
+                        id: tempBox
+                        text: qsTr("温度")
+                        onClicked: {
+                            presBox.checked = false;
+                            tempBox.checked = true;
+                        }
+                    }
+                }
+                Row{
+                    width: parent.width
+                    height: 30
+                    spacing: 20
+                    Text {
+                        width: 40
+                        height: parent.height
+                        text: qsTr("时间: ")
+                        font.pixelSize: 14
+                        font.family: "微软雅黑"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                    Rectangle{
+                        id: labelTimeRect
+                        width: parent.width - 40 - 20
+                        height: parent.height
+                        border.color: "#B7B7B7"
+                        border.width: 1
+                        radius: 6
+                        Text {
+                            id: labelTimeText
+                            anchors.fill: parent
+                            font.pixelSize: 12
+                            font.family: "微软雅黑"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        MouseArea{
+                            anchors.fill: parent
+                            onClicked: {
+                                labelTimeChoose.open();
+                                var time = labelTimeText.text;
+                                labelDc.iOpen(time)
+                            }
+                            Popup {
+                                visible: false
+                                id: labelTimeChoose
+                                x : ((labelTimeRect.width - 200) / 2)
+                                y : labelTimeRect.y + labelTimeRect.height
+                                width : 200
+                                height : 200
+                                DateChoose{
+                                    id:labelDc
+                                    anchors.fill: parent
+                                    onIChoose: {
+                                        var d = iGetDate(day, hour, min);
+                                        labelTimeText.text = d;
+                                        labelTimeChoose.close();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Row{
+                    width: parent.width
+                    height: 30
+                    spacing: 20
+                    Text {
+                        width: 40
+                        height: parent.height
+                        text: qsTr("备注: ")
+                        font.pixelSize: 14
+                        font.family: "微软雅黑"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    TextField {
+                        id: note_value;
+                        width: parent.width - 40 - 20
+                        height: parent.height
+                        verticalAlignment: Text.AlignVCenter;
+                        horizontalAlignment: Text.AlignHCenter;
+                        font.pixelSize: 12
+                        font.family: "微软雅黑"
+                        clip: true;
+                        maximumLength: 15
+                        background: Rectangle {
+                            radius: 6
+                            border.color: "#B7B7B7"
+                            border.width: 1
+                        }
+                        onFocusChanged: {
+                            if(focus) selectAll();
+                        }
+                    }
+                }
+                Row{
+                    width: parent.width
+                    height: 30
+                    Item {
+                        width: parent.width / 2
+                        height: parent.height
+                        Rectangle{
+                            width: 90
+                            height: parent.height
+                            anchors.centerIn: parent
+                            color: "#FD8129"
+                            radius: 5
+                            Text {
+                                anchors.fill: parent
+                                text: qsTr("确定")
+                                font.pixelSize: 12
+                                font.bold: true
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                color: "#FFFFFF"
+                            }
+                            MouseArea{
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered:  parent.color = "#FD9433"
+                                onExited: parent.color = "#FD8129"
+                                onClicked: {
+                                    //    Q_INVOKABLE void addLabel(const int type, const double xValue, const double yValue, const QString text);
+                                    var date = new Date(labelTimeText.text);
+                                    const stime = Math.trunc(Date.parse(date) / 1000);
+                                    myplot.addLabel(1, stime, 0, note_value.text);
+                                    labelSettingPop.close();
+                                }
+                            }
+                        }
+                    }
+
+                    Item {
+                        width: parent.width / 2
+                        height: parent.height
+                        Rectangle{
+                            width: 90
+                            height: parent.height
+                            color: "#FD8129"
+                            anchors.centerIn: parent
+                            radius: 5
+                            Text {
+                                anchors.fill: parent
+                                text: qsTr("取消")
+                                font.pixelSize: 12
+                                font.bold: true
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                color: "#FFFFFF"
+                            }
+                            MouseArea{
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered:  parent.color = "#FD9433"
+                                onExited: parent.color = "#FD8129"
+                                onClicked: {
+                                    labelSettingPop.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     IbpicpDataControl
     {
         id: ibpicpDataControl
@@ -262,6 +481,10 @@ ApplicationWindow  {
             userDataList = ibpicpDataControl.userData;
             userInfoRep.model = userDataList;
         }
+        // onSelectLabeled:
+        // {
+        //     isSelectLabel = value;
+        // }
     }
 
 
@@ -549,7 +772,7 @@ ApplicationWindow  {
                         width: 80
                         height: parent.height
                         text: "时间选择"
-                        font.pixelSize: 16
+                        font.pixelSize: 14
                         color: "#333333"
                         font.family: "微软雅黑"
                         horizontalAlignment: Text.AlignHCenter
@@ -557,14 +780,14 @@ ApplicationWindow  {
                     }
                     Rectangle
                     {
-                        width : 476
+                        width : 340
                         height : parent.height
                         border.color: "#B7B7B7"
                         border.width: 1
                         radius: 6
                         Row
                         {
-                            width: parent.width - 60
+                            width: parent.width - 20
                             height: parent.height - 24
                             anchors.centerIn: parent
                             Item{
@@ -574,7 +797,7 @@ ApplicationWindow  {
                                 Text {
                                     id: stimeText
                                     anchors.fill: parent
-                                    font.pixelSize: 14
+                                    font.pixelSize: 12
                                     font.family: "微软雅黑"
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
@@ -593,10 +816,10 @@ ApplicationWindow  {
                                     Popup {
                                         visible: false
                                         id: dateChoose
-                                        x : sTimeRect.x
+                                        x : sTimeRect.x + ((sTimeRect.width - 200) / 2)
                                         y : sTimeRect.y + sTimeRect.height
-                                        width : sTimeRect.width
-                                        height : stimeText.width
+                                        width : 200
+                                        height : 200
                                         DateChoose{
                                             id:dc
                                             anchors.fill: parent
@@ -636,7 +859,7 @@ ApplicationWindow  {
                                 Text {
                                     id: etimeText
                                     anchors.fill: parent
-                                    font.pixelSize: 14
+                                    font.pixelSize: 12
                                     font.family: "微软雅黑"
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
@@ -655,10 +878,10 @@ ApplicationWindow  {
                                     Popup {
                                         visible: false
                                         id: endDateChoose
-                                        x : eTimeRect.x - eTimeRect.width
+                                        x : eTimeRect.x + ((eTimeRect.width - 200) / 2)
                                         y : eTimeRect.y + eTimeRect.height
-                                        width : eTimeRect.width
-                                        height : etimeText.width
+                                        width : 200
+                                        height : 200
                                         DateChoose{
                                             id:endDc
                                             anchors.fill: parent
@@ -687,7 +910,7 @@ ApplicationWindow  {
                     }
                     Rectangle
                     {
-                        width : 120
+                        width : 100
                         height : parent.height
                         border.color: "#B7B7B7"
                         border.width: 1
@@ -698,7 +921,7 @@ ApplicationWindow  {
 
                             Text {
                                 id: dataTytpeText
-                                width: 80
+                                width: 60
                                 height: parent.height
                                 text: showTempData ? "温度": "压强"
                                 font.pixelSize: 14
@@ -731,22 +954,22 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 30
+                        width: 10
                         height: parent.height
                     }
                     Item
                     {
-                        width: 120
+                        width: 80
                         height: parent.height
                         Row
                         {
                             anchors.fill: parent
                             Text {
-                                width: 80
+                                width: 40
                                 height: parent.height
                                 text: qsTr("最大值")
                                 color: "#0A6086"
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -757,7 +980,7 @@ ApplicationWindow  {
                                 height: parent.height
                                 text: showTempData ? maxTemp : maxPres
                                 color: "#0A6086"
-                                font.pixelSize: 20
+                                font.pixelSize: 16
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -778,18 +1001,18 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 120
+                        width: 80
                         height: parent.height
                         Row
                         {
                             anchors.fill: parent
                             Text {
                                 id: minText
-                                width: 80
+                                width: 40
                                 height: parent.height
                                 text: qsTr("最小值")
                                 color: "#BA6C00"
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -799,7 +1022,7 @@ ApplicationWindow  {
                                 height: parent.height
                                 text: showTempData ? minTemp : minPres
                                 color: "#BA6C00"
-                                font.pixelSize: 20
+                                font.pixelSize: 16
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -820,17 +1043,17 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 120
+                        width: 80
                         height: parent.height
                         Row
                         {
                             anchors.fill: parent
                             Text {
-                                width: 80
+                                width: 40
                                 height: parent.height
                                 text: qsTr("平均值")
                                 color: "#127070"
-                                font.pixelSize: 16
+                                font.pixelSize: 14
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -841,7 +1064,7 @@ ApplicationWindow  {
                                 height: parent.height
                                 text: showTempData ? avgTemp : avgPres
                                 color: "#127070"
-                                font.pixelSize: 20
+                                font.pixelSize: 16
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
@@ -849,19 +1072,19 @@ ApplicationWindow  {
                         }
                     }
                     Item{
-                        width: parent.width - 110*3 - 30*4 - 120*4 - 20*2 - 476 - 80
+                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*80 - 2*20 - 90*5 - 15*4
                         height: parent.height
                     }
                     Rectangle
                     {
-                        width : 110
+                        width : 90
                         height : parent.height
                         border.color: "#2C7F75"
                         border.width: 1
                         radius: 6
                         Row
                         {
-                            width: parent.width - 28
+                            width: parent.width - 20
                             height: parent.height - 24
                             anchors.centerIn: parent
                             Image
@@ -874,7 +1097,101 @@ ApplicationWindow  {
                             Text {
                                 width: parent.width - parent.height
                                 height: parent.height
-                                font.pixelSize: 14
+                                font.pixelSize: 12
+                                text: isSelectLabel ? "编辑标签" : "添加标签"
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.LeftButton
+                            hoverEnabled: true
+                            onEntered: parent.color = "#2C7F75";
+                            onExited: parent.color = "#FFFFFF";
+                            onClicked:
+                            {
+                                labelSettingPop.open();
+                            }
+                        }
+                    }
+                    Item
+                    {
+                        width: 15
+                        height: parent.height
+                    }
+                    Rectangle
+                    {
+                        width : 90
+                        height : parent.height
+                        border.color: "#2C7F75"
+                        border.width: 1
+                        radius: 6
+                        Row
+                        {
+                            width: parent.width - 20
+                            height: parent.height - 24
+                            anchors.centerIn: parent
+                            Image
+                            {
+                                width: height
+                                height: parent.height
+                                fillMode: Image.PreserveAspectFit;
+                                source: "qrc:/Res/exportPDF.png"
+                            }
+                            Text {
+                                width: parent.width - parent.height
+                                height: parent.height
+                                font.pixelSize: 12
+                                text: isSelectLabel ? "删除标签" : "清空标签"
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.LeftButton
+                            hoverEnabled: true
+                            onEntered: parent.color = "#2C7F75";
+                            onExited: parent.color = "#FFFFFF";
+                            onClicked:
+                            {
+
+                            }
+                        }
+                    }
+                    Item
+                    {
+                        width: 15
+                        height: parent.height
+                    }
+                    Rectangle
+                    {
+                        width : 90
+                        height : parent.height
+                        border.color: "#2C7F75"
+                        border.width: 1
+                        radius: 6
+                        Row
+                        {
+                            width: parent.width - 20
+                            height: parent.height - 24
+                            anchors.centerIn: parent
+                            Image
+                            {
+                                width: height
+                                height: parent.height
+                                fillMode: Image.PreserveAspectFit;
+                                source: "qrc:/Res/exportPDF.png"
+                            }
+                            Text {
+                                width: parent.width - parent.height
+                                height: parent.height
+                                font.pixelSize: 12
                                 text: "导出PDF"
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
@@ -897,20 +1214,20 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 30
+                        width: 15
                         height: parent.height
                     }
 
                     Rectangle
                     {
-                        width : 110
+                        width : 90
                         height : parent.height
                         border.color: "#2C7F75"
                         border.width: 1
                         radius: 6
                         Row
                         {
-                            width: parent.width - 28
+                            width: parent.width - 20
                             height: parent.height - 24
                             anchors.centerIn: parent
                             Image
@@ -923,7 +1240,7 @@ ApplicationWindow  {
                             Text {
                                 width: parent.width - parent.height
                                 height: parent.height
-                                font.pixelSize: 14
+                                font.pixelSize: 12
                                 text: "导出文本"
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
@@ -945,18 +1262,18 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 30
+                        width: 15
                         height: parent.height
                     }
                     Rectangle
                     {
-                        width : 110
+                        width : 90
                         height : parent.height
                         color: "#2C7F75"
                         radius: 6
                         Row
                         {
-                            width: parent.width - 28
+                            width: parent.width - 20
                             height: parent.height - 24
                             anchors.centerIn: parent
                             Image
@@ -969,7 +1286,7 @@ ApplicationWindow  {
                             Text {
                                 width: parent.width - parent.height
                                 height: parent.height
-                                font.pixelSize: 14
+                                font.pixelSize: 12
                                 text: "选择文件"
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter

@@ -13,8 +13,6 @@ BasePlotItem::BasePlotItem( QQuickItem* parent ) : QQuickPaintedItem( parent )
 
     connect( this, &QQuickPaintedItem::widthChanged, this, &BasePlotItem::updateCustomPlotSize );
     connect( this, &QQuickPaintedItem::heightChanged, this, &BasePlotItem::updateCustomPlotSize );
-    //connect(this, &BasePlotItem::wheelEvent, this, &BasePlotItem::slot_wheelEvent);
-    //connect(m_CustomPlot, SIGNAL(mouseMove(QMouseEvent*)), this, SLOT(routeMouseEvents(QMouseEvent*)));
 }
 
 BasePlotItem::~BasePlotItem()
@@ -46,21 +44,50 @@ QCustomPlot *BasePlotItem::getPlot()
 
 void BasePlotItem::mousePressEvent( QMouseEvent* event )
 {
-    routeMouseEvents( event );
+    getPlot()->mousePressEvent(event);
+    if (getPlot()->selectedItems().isEmpty())
+    {
+        routeMouseEvents( event );
+    }
+    else
+    {
+        item_selected = dynamic_cast<QCPItemText*>(getPlot()->selectedItems().value(0));
+    }
 }
 
 void BasePlotItem::mouseReleaseEvent( QMouseEvent* event )
 {
-    routeMouseEvents( event );
+
+    getPlot()->mouseReleaseEvent(event);
+    if(item_selected)
+    {
+        item_selected->setSelected(false);
+        item_selected = nullptr;
+        getPlot()->replot();
+        return;
+    }
+
+    if(!getPlot()->selectedItems().isEmpty())
+    {
+        item_selected = dynamic_cast<QCPItemText*>(getPlot()->selectedItems().value(0));
+    }
 }
 
 void BasePlotItem::mouseMoveEvent( QMouseEvent* event )
 {
-    routeMouseEvents( event );
+    if(item_selected != nullptr)
+    {
+        itemRouteMouseEvents( event );
+    }
+    else
+    {
+        routeMouseEvents( event );
+    }
 }
 
 void BasePlotItem::mouseDoubleClickEvent( QMouseEvent* event )
 {
+    getPlot()->mouseDoubleClickEvent(event);
     routeMouseEvents( event );
 }
 
@@ -68,121 +95,19 @@ void BasePlotItem::wheelEvent( QWheelEvent *event )
 {
     routeWheelEvents( event );
 }
+
+void BasePlotItem::itemRouteMouseEvents(QMouseEvent *event)
+{
+    if (item_selected && item_selected->position) {
+        double cur_x = item_selected->position->keyAxis()->pixelToCoord(event->pos().x());
+        double cur_y = item_selected->position->valueAxis()->pixelToCoord(event->pos().y());
+        item_selected->position->setCoords(cur_x, cur_y);
+        getPlot()->replot();
+    }
+}
 void BasePlotItem::graphClicked( QCPAbstractPlottable* plottable )
 {
 
-}
-
-void BasePlotItem::routeMouseEvents( QMouseEvent* event )
-{
-    if (getPlot())
-    {
-        // if(event->button() == Qt::MouseButton::LeftButton)
-        if (event->buttons() & Qt::LeftButton)
-        {
-            QMouseEvent* newEvent = new QMouseEvent( event->type(), event->localPos(), event->button(), event->buttons(), event->modifiers() );
-            QCoreApplication::postEvent( getPlot(), newEvent );
-
-            QList<QCPAxis*> axes;
-            if (getPlot()->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
-            {
-                axes << getPlot()->xAxis;
-                getPlot()->axisRect()->setRangeDragAxes(axes);
-                getPlot()->axisRect()->setRangeDrag(getPlot()->xAxis->orientation());
-            }
-            else if (getPlot()->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
-            {
-                axes << getPlot()->yAxis;
-                getPlot()->axisRect()->setRangeDragAxes(axes);
-                getPlot()->axisRect()->setRangeDrag(getPlot()->yAxis->orientation());
-            }
-            else if (getPlot()->yAxis2->selectedParts().testFlag(QCPAxis::spAxis))
-            {
-                axes << getPlot()->yAxis2;
-                getPlot()->axisRect()->setRangeDragAxes(axes);
-                getPlot()->axisRect()->setRangeDrag(getPlot()->yAxis2->orientation());
-            }
-            else
-            {
-                axes << getPlot()->yAxis << getPlot()->xAxis << getPlot()->yAxis2;
-                getPlot()->axisRect()->setRangeDragAxes(axes);
-                getPlot()->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
-            }
-        }
-        else if (event->buttons() & Qt::RightButton)
-        {
-            m_refer_lineV->setVisible(true);
-            m_tracer_temp->setVisible(true);
-            m_cur_Label_temp->setVisible(true);
-
-            if(getPlot()->yAxis2->visible())
-            {
-                m_tracer_power->setVisible(true);
-                m_cur_Label_power->setVisible(true);
-            }
-
-            double cur_x = getPlot()->xAxis->pixelToCoord(event->pos().x());
-
-            m_tracer_temp->setGraph(getPlot()->graph(0));
-            m_tracer_temp->setGraphKey(cur_x);
-            m_tracer_temp->setInterpolating(true);
-            m_tracer_temp->updatePosition();
-
-            m_tracer_power->setGraph(getPlot()->graph(1));
-            m_tracer_power->setGraphKey(cur_x);
-            m_tracer_power->setInterpolating(true);
-            m_tracer_power->updatePosition();
-
-            double yValue = m_tracer_temp->position->value();
-            m_cur_Label_temp->position->setCoords(0, 10);
-            m_cur_Label_temp->setText(QString::number(yValue, 'f', 1));
-
-            double yValue2 = m_tracer_power->position->value();
-            m_cur_Label_power->position->setCoords(0, 10);
-            m_cur_Label_power->setText(QString::number(yValue2, 'f', 1));
-
-            m_refer_lineV->point1->setCoords(cur_x, 0);
-            m_refer_lineV->point2->setCoords(cur_x, 100);
-
-            getPlot()->replot();
-        }
-
-    }
-}
-
-void BasePlotItem::routeWheelEvents( QWheelEvent* event )
-{
-    if (getPlot())
-    {
-        QList<QCPAxis*> axes;
-        QWheelEvent* newEvent = new QWheelEvent( event->pos(), event->delta(), event->buttons(), event->modifiers(), event->orientation() );
-        QCoreApplication::postEvent( getPlot(), newEvent );
-
-        if (getPlot()->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
-        {
-            axes << getPlot()->xAxis;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(getPlot()->xAxis->orientation());
-        }
-        else if (getPlot()->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
-        {
-            axes << getPlot()->yAxis;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(getPlot()->yAxis->orientation());
-        }
-        else if (getPlot()->yAxis2->selectedParts().testFlag(QCPAxis::spAxis))
-        {
-            axes << getPlot()->yAxis2;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(getPlot()->yAxis2->orientation());
-        }
-        else
-        {
-            axes << getPlot()->yAxis << getPlot()->xAxis << getPlot()->yAxis2;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
-        }
-    }
 }
 
 void BasePlotItem::hoverMoveEvent(QHoverEvent *event)
@@ -240,14 +165,14 @@ void CustomPlotItem::initCustomPlot()
     getPlot()->yAxis->setTickLength(10,5);
     getPlot()->yAxis->setRange(20, 30);
 
-    getPlot()->yAxis2->setVisible(false);
+    getPlot()->yAxis2->setVisible(true);
     getPlot()->yAxis2->setNumberFormat("f");
     getPlot()->yAxis2->setNumberPrecision(2);
     getPlot()->yAxis2->setLabel("温度 °C");
     getPlot()->yAxis2->setTickLength(10,5);
     getPlot()->yAxis2->setRange(35, 42);
 
-    getPlot()->setInteractions(QCP::iRangeDrag|QCP::iRangeZoom);
+    getPlot()->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectItems);
     getPlot()->legend->setVisible(true);
     getPlot()->legend->setBrush(QColor(255,255,255,0));
     getPlot()->axisRect()->insetLayout()->setInsetAlignment(0,Qt::AlignTop|Qt::AlignLeft);
@@ -258,20 +183,17 @@ void CustomPlotItem::initCustomPlot()
     m_tracer_temp->setPen(QPen(Qt::red, 3, Qt::SolidLine));
     m_tracer_temp->setBrush(Qt::SolidPattern);
     m_tracer_temp->setVisible(false);
+    m_tracer_temp->position->setType(QCPItemPosition::ptPlotCoords);
+    m_tracer_temp->setSize(5);
+    m_tracer_temp->setGraph(m_TempGraph);
 
     m_tracer_power = new QCPItemTracer(getPlot());
     m_tracer_power->setStyle(QCPItemTracer::tsCircle);
-    m_tracer_power->setPen(QPen(Qt::red, 3, Qt::SolidLine));
+    m_tracer_power->setPen(QPen(Qt::blue, 3, Qt::SolidLine));
     m_tracer_power->setBrush(Qt::SolidPattern);
     m_tracer_power->setVisible(false);
-
     m_tracer_power->position->setType(QCPItemPosition::ptPlotCoords);
     m_tracer_power->setSize(5);
-
-    m_tracer_temp->position->setType(QCPItemPosition::ptPlotCoords);
-    m_tracer_temp->setSize(5);
-
-    m_tracer_temp->setGraph(m_TempGraph);
     m_tracer_power->setGraph(m_PresGraph);
 
     m_cur_Label_temp = new QCPItemText(getPlot());
@@ -291,14 +213,152 @@ void CustomPlotItem::initCustomPlot()
     m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_cur_Label_power->setBrush(QBrush(Qt::blue));
 
+    m_cur_Label_time = new QCPItemText(getPlot());
+    m_cur_Label_time->setFont(QFont(qApp->font().family(), 12));
+    m_cur_Label_time->setColor(Qt::white);
+    m_cur_Label_time->setVisible(false);
+    m_cur_Label_time->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_cur_Label_time->setBrush(QBrush(Qt::red));
+
     m_refer_lineV = new QCPItemStraightLine(getPlot());
     m_refer_lineV->setPen(QPen(Qt::red, 1, Qt::DashLine));
     m_refer_lineV->setVisible(false);
-
     connect( getPlot(), &QCustomPlot::afterReplot, this, &CustomPlotItem::onCustomReplot );
-
-    //connect(getPlot(), SIGNAL(mouseRelease(QMouseEvent *)), this, SLOT(slot_mouseRelease(QMouseEvent *)));
 }
+
+void CustomPlotItem::routeMouseEvents( QMouseEvent* event )
+{
+    if (getPlot())
+    {
+        if (event->buttons() & Qt::LeftButton)
+        {
+            QMouseEvent* newEvent = new QMouseEvent( event->type(), event->localPos(), event->button(), event->buttons(), event->modifiers() );
+            QCoreApplication::postEvent( getPlot(), newEvent );
+
+            QList<QCPAxis*> axes;
+            if (getPlot()->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+            {
+                axes << getPlot()->xAxis;
+                getPlot()->axisRect()->setRangeDragAxes(axes);
+                getPlot()->axisRect()->setRangeDrag(getPlot()->xAxis->orientation());
+            }
+            else if (getPlot()->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+            {
+                axes << getPlot()->yAxis;
+                getPlot()->axisRect()->setRangeDragAxes(axes);
+                getPlot()->axisRect()->setRangeDrag(getPlot()->yAxis->orientation());
+            }
+            else if (getPlot()->yAxis2->selectedParts().testFlag(QCPAxis::spAxis))
+            {
+                axes << getPlot()->yAxis2;
+                getPlot()->axisRect()->setRangeDragAxes(axes);
+                getPlot()->axisRect()->setRangeDrag(getPlot()->yAxis2->orientation());
+            }
+            else
+            {
+                axes << getPlot()->yAxis << getPlot()->xAxis << getPlot()->yAxis2;
+                getPlot()->axisRect()->setRangeDragAxes(axes);
+                getPlot()->axisRect()->setRangeDrag(Qt::Horizontal|Qt::Vertical);
+            }
+        }
+        else if (event->buttons() & Qt::RightButton)
+        {
+            m_refer_lineV->setVisible(true);
+            m_tracer_temp->setVisible(true);
+            m_cur_Label_temp->setVisible(true);
+
+            if(getPlot()->yAxis2->visible())
+            {
+                m_tracer_power->setVisible(true);
+                m_cur_Label_power->setVisible(true);
+                m_cur_Label_time->setVisible(true);
+            }
+
+            double cur_x = getPlot()->xAxis->pixelToCoord(event->pos().x());
+
+            m_tracer_temp->setGraph(getPlot()->graph(0));
+            m_tracer_temp->setGraphKey(cur_x);
+            m_tracer_temp->setInterpolating(true);
+            m_tracer_temp->updatePosition();
+
+            m_tracer_power->setGraph(getPlot()->graph(1));
+            m_tracer_power->setGraphKey(cur_x);
+            m_tracer_power->setInterpolating(true);
+            m_tracer_power->updatePosition();
+
+            double yValue = m_tracer_temp->position->value();
+            m_cur_Label_temp->position->setCoords(0, 10);
+            m_cur_Label_temp->setText(QString::number(yValue, 'f', 1));
+
+            double yValue2 = m_tracer_power->position->value();
+            m_cur_Label_power->position->setCoords(0, 10);
+            m_cur_Label_power->setText(QString::number(yValue2, 'f', 1));
+
+            m_cur_Label_time->position->setCoords(cur_x, 0);
+            QDateTime timeValue = QDateTime::fromSecsSinceEpoch(cur_x);
+            m_cur_Label_time->setText(timeValue.toString("yyyy-MM-dd hh:mm:ss"));
+
+            m_refer_lineV->point1->setCoords(cur_x, 0);
+            m_refer_lineV->point2->setCoords(cur_x, 100);
+
+            getPlot()->replot();
+        }
+    }
+}
+
+void CustomPlotItem::routeWheelEvents( QWheelEvent* event )
+{
+    if (getPlot())
+    {
+        QList<QCPAxis*> axes;
+        QWheelEvent* newEvent = new QWheelEvent( event->pos(), event->delta(), event->buttons(), event->modifiers(), event->orientation() );
+        QCoreApplication::postEvent( getPlot(), newEvent );
+
+        if (getPlot()->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        {
+            axes << getPlot()->xAxis;
+            getPlot()->axisRect()->setRangeZoomAxes(axes);
+            getPlot()->axisRect()->setRangeZoom(getPlot()->xAxis->orientation());
+        }
+        else if (getPlot()->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        {
+            axes << getPlot()->yAxis;
+            getPlot()->axisRect()->setRangeZoomAxes(axes);
+            getPlot()->axisRect()->setRangeZoom(getPlot()->yAxis->orientation());
+        }
+        else if (getPlot()->yAxis2->selectedParts().testFlag(QCPAxis::spAxis))
+        {
+            axes << getPlot()->yAxis2;
+            getPlot()->axisRect()->setRangeZoomAxes(axes);
+            getPlot()->axisRect()->setRangeZoom(getPlot()->yAxis2->orientation());
+        }
+        else
+        {
+            axes << getPlot()->yAxis << getPlot()->xAxis << getPlot()->yAxis2;
+            getPlot()->axisRect()->setRangeZoomAxes(axes);
+            getPlot()->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+        }
+
+        if(getPlot()->xAxis->range().lower < xAxisMinValue
+            || getPlot()->xAxis->range().upper > xAxisMaxValue)
+        {
+            setTimeRange(xAxisMinValue, xAxisMaxValue);
+        }
+
+        if(getPlot()->yAxis->range().lower < yAxisMinValue
+            || getPlot()->yAxis->range().upper > yAxisMaxValue)
+        {
+            setCurrentRange(yAxisMinValue, yAxisMaxValue);
+        }
+
+        if(getPlot()->yAxis2->range().lower < yAxis2MinValue
+            || getPlot()->yAxis2->range().upper > yAxis2MaxValue)
+        {
+            setVoltageRange(yAxis2MinValue, yAxis2MaxValue);
+        }
+    }
+}
+
 
 void CustomPlotItem::setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values)
 {
@@ -354,9 +414,61 @@ void CustomPlotItem::replot()
 void CustomPlotItem::rescaleAxes()
 {
     getPlot()->rescaleAxes();
+    xAxisMaxValue = getPlot()->xAxis->range().upper;
+    yAxisMaxValue = getPlot()->yAxis->range().upper;
+    yAxis2MaxValue = getPlot()->yAxis2->range().upper;
+
+    xAxisMinValue = getPlot()->xAxis->range().lower;
+    yAxisMinValue = getPlot()->yAxis->range().lower;
+    yAxis2MinValue = getPlot()->yAxis2->range().lower;
 }
 
 void CustomPlotItem::exportPdf(const QString path)
 {
     getPlot()->savePdf(path);
+}
+
+void CustomPlotItem::clearValue()
+{
+    xAxisMaxValue = 0;
+    yAxisMaxValue = 0;
+    yAxis2MaxValue = 0;
+
+    xAxisMinValue = 0;
+    yAxisMinValue = 0;
+    yAxis2MinValue = 0;
+}
+
+void CustomPlotItem::addLabel(const int type, const double xValue, const double yValue, const QString text)
+{
+    QCPItemText *textLabel = new QCPItemText(getPlot());
+    textLabel->setFont(QFont(qApp->font().family(), 12));
+    textLabel->setPen(QPen(Qt::black));
+    textLabel->position->setCoords(xValue, yValue + 40);
+    textLabel->position->setType(QCPItemPosition::ptPlotCoords);
+    if(type == 1){
+        textLabel->position->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
+    }
+    else
+    {
+        textLabel->position->setAxes(getPlot()->xAxis, getPlot()->yAxis);
+    }
+    textLabel->setText(text);
+    textLabel->setSelectable(true);
+
+    // add the arrow:
+    QCPItemLine *arrow = new QCPItemLine(getPlot());
+    arrow->start->setParentAnchor(textLabel->bottomLeft);
+    arrow->end->setCoords(xValue, yValue);
+    arrow->end->setType(QCPItemPosition::ptPlotCoords);
+    arrow->end->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
+    if(type == 1){
+        arrow->end->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
+    }
+    else
+    {
+        arrow->end->setAxes(getPlot()->xAxis, getPlot()->yAxis);
+    }
+    arrow->setHead(QCPLineEnding::esSpikeArrow);
+    arrow->setSelectable(false);
 }

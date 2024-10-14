@@ -185,6 +185,10 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath)
             {
                 continue;
             }
+            if (!id.endsWith("P") && tempValue < 1)
+            {
+                continue;
+            }
             timeData.push_back((double)beginSecs + j);
             pressureData.push_back(preValue);
             temperatureData.push_back(tempValue);
@@ -293,6 +297,8 @@ void IbpicpDataControl::MegredUserData()
 
             temperatureData.append(blankTemVec);
             temperatureData.append(userInfo.tempVec);
+
+            lastTime = timeData[timeData.length() - 1];
         }
 
         infoMap.insert("timeData", QVariant::fromValue(timeData));

@@ -9,6 +9,7 @@ class QCPAbstractPlottable;
 class QCPItemTracer;
 class QCPItemText;
 class QCPItemStraightLine;
+class QCPRange;
 
 class BasePlotItem : public QQuickPaintedItem
 {
@@ -20,11 +21,14 @@ public:
     virtual void initCustomPlotUI(){}
 
     QCustomPlot *getPlot();
-    QCPItemTracer *m_tracer_temp;
-    QCPItemText *m_cur_Label_temp;
-    QCPItemTracer *m_tracer_power;
-    QCPItemText *m_cur_Label_power;
-    QCPItemStraightLine *m_refer_lineV;
+    QCPItemTracer *m_tracer_temp = nullptr;
+    QCPItemText *m_cur_Label_temp = nullptr;
+    QCPItemTracer *m_tracer_power = nullptr;
+    QCPItemText *m_cur_Label_power = nullptr;
+    QCPItemTracer *m_tracer_time = nullptr;
+    QCPItemText *m_cur_Label_time = nullptr;
+    QCPItemStraightLine *m_refer_lineV = nullptr;
+    QCPItemText* item_selected = nullptr;
 protected:
     virtual void hoverMoveEvent(QHoverEvent *event);
     virtual void mousePressEvent( QMouseEvent* event );
@@ -33,8 +37,9 @@ protected:
     virtual void mouseDoubleClickEvent( QMouseEvent* event );
     virtual void wheelEvent( QWheelEvent *event );
 
-    void routeMouseEvents( QMouseEvent* event );
-    void routeWheelEvents( QWheelEvent* event );
+    virtual void routeMouseEvents( QMouseEvent* event ) = 0;
+    virtual void routeWheelEvents( QWheelEvent* event ) = 0;
+    void itemRouteMouseEvents( QMouseEvent* event );
 public slots:
     void graphClicked( QCPAbstractPlottable* plottable );
     void onCustomReplot();
@@ -52,8 +57,9 @@ public:
     virtual ~CustomPlotItem();
     Q_INVOKABLE void initCustomPlot();
     // void slot_mouseRelease(QMouseEvent *event);
-// protected:
-//     virtual void mousePressEvent( QMouseEvent* event );
+protected:
+    virtual void routeMouseEvents( QMouseEvent* event );
+    virtual void routeWheelEvents( QWheelEvent* event );
 
 public slots:
     Q_INVOKABLE void setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values);
@@ -66,10 +72,18 @@ public slots:
     Q_INVOKABLE void replot();
     Q_INVOKABLE void rescaleAxes();
     Q_INVOKABLE void exportPdf(const QString path);
+    Q_INVOKABLE void clearValue();
 
+    Q_INVOKABLE void addLabel(const int type, const double xValue, const double yValue, const QString text);
 private:
     QCPGraph* m_TempGraph = nullptr;
     QCPGraph* m_PresGraph = nullptr;
+    double xAxisMaxValue = 0;
+    double yAxisMaxValue = 0;
+    double yAxis2MaxValue = 0;
 
+    double xAxisMinValue = 0;
+    double yAxisMinValue = 0;
+    double yAxis2MinValue = 0;
 };
 #endif // QMLPLOT_H
