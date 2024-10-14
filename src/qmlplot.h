@@ -80,6 +80,8 @@ public slots:
     Q_INVOKABLE void deleteCurLabel();
     Q_INVOKABLE void clearLabels();
     Q_INVOKABLE void editLabel(const QString text);
+    Q_INVOKABLE QString getLabelText();
+    Q_INVOKABLE double getLabelTime();
 
 signals:
     void selectedTextChanged(bool value);

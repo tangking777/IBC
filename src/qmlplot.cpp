@@ -201,27 +201,34 @@ void CustomPlotItem::initCustomPlot()
 
     m_cur_Label_temp = new QCPItemText(getPlot());
     m_cur_Label_temp->position->setParentAnchor(m_tracer_temp->position);
-    m_cur_Label_temp->setFont(QFont(qApp->font().family(), 12));
+    m_cur_Label_temp->setFont(QFont(qApp->font().family(), 13));
     m_cur_Label_temp->setColor(Qt::white);
     m_cur_Label_temp->setVisible(false);
     m_cur_Label_temp->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_cur_Label_temp->setBrush(QBrush(Qt::red));
+    m_cur_Label_temp->setSelectable(false);
+    m_cur_Label_temp->setPadding(QMargins(5,5,5,5));
 
 
     m_cur_Label_power = new QCPItemText(getPlot());
     m_cur_Label_power->position->setParentAnchor(m_tracer_power->position);
-    m_cur_Label_power->setFont(QFont(qApp->font().family(), 12));
+    m_cur_Label_power->setFont(QFont(qApp->font().family(), 13));
     m_cur_Label_power->setColor(Qt::white);
     m_cur_Label_power->setVisible(false);
     m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_cur_Label_power->setBrush(QBrush(Qt::blue));
+    m_cur_Label_power->setSelectable(false);
+    m_cur_Label_power->setPadding(QMargins(5,5,5,5));
+
 
     m_cur_Label_time = new QCPItemText(getPlot());
-    m_cur_Label_time->setFont(QFont(qApp->font().family(), 12));
+    m_cur_Label_time->setFont(QFont(qApp->font().family(), 13));
     m_cur_Label_time->setColor(Qt::white);
     m_cur_Label_time->setVisible(false);
     m_cur_Label_time->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_cur_Label_time->setBrush(QBrush(Qt::red));
+    m_cur_Label_time->setSelectable(false);
+    m_cur_Label_time->setPadding(QMargins(5,5,5,5));
 
     m_refer_lineV = new QCPItemStraightLine(getPlot());
     m_refer_lineV->setPen(QPen(Qt::red, 1, Qt::DashLine));
@@ -445,12 +452,15 @@ void CustomPlotItem::clearValue()
 void CustomPlotItem::addLabel(const int type, const double xValue, const double yValue, const QString text)
 {
     QCPItemText *textLabel = new QCPItemText(getPlot());
-    textLabel->setFont(QFont(qApp->font().family(), 12));
-    textLabel->setPen(QPen(Qt::white));
-    textLabel->position->setCoords(xValue, yValue + 20);
+    textLabel->setFont(QFont(qApp->font().family(), 13));
+    textLabel->setColor(Qt::white);
+    textLabel->position->setCoords(xValue, yValue);
     textLabel->position->setType(QCPItemPosition::ptPlotCoords);
     textLabel->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    textLabel->setBrush(QBrush(Qt::yellow));
+    textLabel->setBrush(QBrush(QColor(72, 201, 176)));
+    textLabel->setPadding(QMargins(5,5,5,5));
+    textLabel->setSelectedFont(QFont(qApp->font().family(), 11));
+    textLabel->setSelectedBrush(QBrush(QColor(72, 201, 176, 156)));
 
     if(type == 1){
         textLabel->position->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
@@ -464,7 +474,7 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
 
     // add the arrow:
     QCPItemLine *arrow = new QCPItemLine(getPlot());
-    arrow->pen().setColor(Qt::yellow);
+    arrow->setPen(QPen(QColor(72, 201, 176), 1.8, Qt::SolidLine));
     arrow->start->setParentAnchor(textLabel->bottomLeft);
     arrow->end->setCoords(xValue, yValue);
     arrow->end->setType(QCPItemPosition::ptPlotCoords);
@@ -497,6 +507,7 @@ void CustomPlotItem::deleteCurLabel()
         }
         getPlot()->removeItem(item_selected);
         item_selected = nullptr;
+        selectedTextChanged(false);
         replot();
     }
 }
@@ -505,7 +516,36 @@ void CustomPlotItem::clearLabels()
 {
     if(getPlot())
     {
-        getPlot()->clearItems();
+        QList<QCPItemText*> textItemList;
+        int itemCount = getPlot()->itemCount();
+        for(int i = 0; i < itemCount; i++)
+        {
+            QCPAbstractItem* item = getPlot()->item(i);
+            if(item)
+            {
+                QCPItemText* textItem = dynamic_cast<QCPItemText*>(item);
+                if(textItem && textItem->selectable())
+                {
+
+                    textItemList.push_back(textItem);
+                }
+            }
+        }
+
+        for(auto tItem : textItemList)
+        {
+            QCPAbstractItem* closedItem = getPlot()->itemAt(tItem->bottomLeft->pixelPosition());
+            if(closedItem)
+            {
+                QCPItemLine* lineItem = dynamic_cast<QCPItemLine*>(closedItem);
+                if(lineItem)
+                {
+                    getPlot()->removeItem(lineItem);
+                }
+            }
+            getPlot()->removeItem(tItem);
+        }
+        selectedTextChanged(false);
         replot();
     }
 }
@@ -515,6 +555,35 @@ void CustomPlotItem::editLabel(const QString text)
     if(getPlot() && item_selected != nullptr)
     {
         item_selected->setText(text);
+        item_selected = nullptr;
+        selectedTextChanged(false);
         replot();
+    }
+}
+
+QString CustomPlotItem::getLabelText()
+{
+    if(getPlot() && item_selected != nullptr)
+    {
+        return item_selected->text();
+    }
+    return "";
+}
+
+double CustomPlotItem::getLabelTime()
+{
+    if(getPlot() && item_selected != nullptr)
+    {
+        // remove line
+        QCPAbstractItem* closedItem = getPlot()->itemAt(item_selected->bottomLeft->pixelPosition());
+        if(closedItem)
+        {
+            QCPItemLine* lineItem = dynamic_cast<QCPItemLine*>(closedItem);
+            if(lineItem)
+            {
+                return lineItem->end->coords().x();
+            }
+        }
+        return 0;
     }
 }

@@ -258,12 +258,21 @@ ApplicationWindow  {
     Popup {
         id: labelSettingPop
         width: 320
-        height: 240
+        height: 220
         anchors.centerIn: parent
         visible: false
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape
+        function openWithData(time, note)
+        {
+            const date = new Date(time * 1000);
+            labelTimeText.text = dateToString(date);
+            note_value.text = note;
+
+            labelSettingPop.open();
+        }
+
         Rectangle{
             id: mainRect
             anchors.fill: parent
@@ -1106,16 +1115,18 @@ ApplicationWindow  {
                         }
                     }
                     Item{
-                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*80 - 2*20 - 90*5 - 15*4
+                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*80 - 2*20 - 90 - 15*4
+                               - (cur_user_index > -1 ? (90 * 4) : 0)
                         height: parent.height
                     }
                     Rectangle
                     {
                         width : 90
                         height : parent.height
-                        border.color: "#2C7F75"
+                        border.color: "#FD9433"
                         border.width: 1
                         radius: 6
+                        visible: cur_user_index > -1
                         Row
                         {
                             width: parent.width - 20
@@ -1126,7 +1137,7 @@ ApplicationWindow  {
                                 width: height
                                 height: parent.height
                                 fillMode: Image.PreserveAspectFit;
-                                source: "qrc:/Res/exportPDF.png"
+                                source: isSelectLabel ? "qrc:/Res/edit.png" : "qrc:/Res/add.png"
                             }
                             Text {
                                 width: parent.width - parent.height
@@ -1143,11 +1154,24 @@ ApplicationWindow  {
                             anchors.fill: parent
                             acceptedButtons: Qt.LeftButton
                             hoverEnabled: true
-                            onEntered: parent.color = "#2C7F75";
+                            onEntered: parent.color = "#FD9433";
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
-                                labelSettingPop.open();
+                                var time, note
+                                var data = userDataList[cur_user_index];
+                                var timeData = data["timeData"];
+                                if(isSelectLabel)
+                                {
+                                    time = myplot.getLabelTime();
+                                    note = myplot.getLabelText();
+                                }
+                                else
+                                {
+                                    time = timeData[0];
+                                    note = ""
+                                }
+                                labelSettingPop.openWithData(time, note);
                             }
                         }
                     }
@@ -1160,9 +1184,10 @@ ApplicationWindow  {
                     {
                         width : 90
                         height : parent.height
-                        border.color: "#2C7F75"
+                        border.color: "#FD9433"
                         border.width: 1
                         radius: 6
+                        visible: cur_user_index > -1
                         Row
                         {
                             width: parent.width - 20
@@ -1173,7 +1198,7 @@ ApplicationWindow  {
                                 width: height
                                 height: parent.height
                                 fillMode: Image.PreserveAspectFit;
-                                source: "qrc:/Res/exportPDF.png"
+                                source: isSelectLabel ? "qrc:/Res/delete.png" : "qrc:/Res/clear.png"
                             }
                             Text {
                                 width: parent.width - parent.height
@@ -1190,18 +1215,25 @@ ApplicationWindow  {
                             anchors.fill: parent
                             acceptedButtons: Qt.LeftButton
                             hoverEnabled: true
-                            onEntered: parent.color = "#2C7F75";
+                            onEntered: parent.color = "#FD9433";
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
-                                if(isSelectLabel)
-                                {
-                                    myplot.deleteCurLabel();
-                                }
-                                else
-                                {
-                                    myplot.clearLabels();
-                                }
+
+                                msg.func = function(){
+                                    if(isSelectLabel)
+                                    {
+                                        myplot.deleteCurLabel();
+                                    }
+                                    else
+                                    {
+                                        myplot.clearLabels();
+                                    }
+                                };
+                                msg.isSuccess = false;
+                                msg.tipText = isSelectLabel ? "是否删除此标签, 请确认!" : "是否清除所有标签, 请确认!";
+                                msg.hasCancel = true;
+                                msg.openMsg();
                             }
                         }
                     }
@@ -1214,9 +1246,10 @@ ApplicationWindow  {
                     {
                         width : 90
                         height : parent.height
-                        border.color: "#2C7F75"
+                        border.color: "#FD9433"
                         border.width: 1
                         radius: 6
+                        visible: cur_user_index > -1
                         Row
                         {
                             width: parent.width - 20
@@ -1244,7 +1277,7 @@ ApplicationWindow  {
                             anchors.fill: parent
                             acceptedButtons: Qt.LeftButton
                             hoverEnabled: true
-                            onEntered: parent.color = "#2C7F75";
+                            onEntered: parent.color = "#FD9433";
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
@@ -1263,9 +1296,10 @@ ApplicationWindow  {
                     {
                         width : 90
                         height : parent.height
-                        border.color: "#2C7F75"
+                        border.color: "#FD9433"
                         border.width: 1
                         radius: 6
+                        visible: cur_user_index > -1
                         Row
                         {
                             width: parent.width - 20
@@ -1293,7 +1327,7 @@ ApplicationWindow  {
                             anchors.fill: parent
                             acceptedButtons: Qt.LeftButton
                             hoverEnabled: true
-                            onEntered: parent.color = "#2C7F75";
+                            onEntered: parent.color = "#FD9433";
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
@@ -1310,7 +1344,7 @@ ApplicationWindow  {
                     {
                         width : 90
                         height : parent.height
-                        color: "#2C7F75"
+                        color: "#FD9433"
                         radius: 6
                         Row
                         {
@@ -1340,10 +1374,10 @@ ApplicationWindow  {
                             acceptedButtons: Qt.LeftButton
                             hoverEnabled: true
                             onEntered: {
-                                parent.border.color = "#2C7F75";
+                                parent.border.color = "#FD9433";
                                 parent.color = "#FFFFFF";
                             }
-                            onExited: parent.color = "#2C7F75";
+                            onExited: parent.color = "#FD9433";
                             onClicked:
                             {
                                 inputFileDialog.open();

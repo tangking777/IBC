@@ -14,5 +14,10 @@
         <file>Res/exportPDF.png</file>
         <file>Res/openFile.png</file>
         <file>qml/LabelSettingPop.qml</file>
+        <file>Res/add.png</file>
+        <file>Res/clear.png</file>
+        <file>Res/delete.png</file>
+        <file>Res/edit.png</file>
+        <file>Res/note.png</file>
     </qresource>
 </RCC>

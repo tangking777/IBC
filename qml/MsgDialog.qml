@@ -52,7 +52,7 @@ Item {
                 width: 40
                 height: 40
                 anchors.centerIn: parent
-                source: isSuccess ? "qrc:/Res/success.png" : "qrc:/Res/fail.png"
+                source: isSuccess ? "qrc:/Res/success.png" : "qrc:/Res/note.png"
             }
         }
         contentItem: Rectangle {
@@ -92,14 +92,14 @@ Item {
                             width: 80
                             height: 30
                             radius: 5
-                            border.color: "#0f748b"
+                            border.color: "#FD8129"
                             border.width: 1
                             color: backGroundColor
                             Text {
                                 anchors.centerIn: parent
                                 font.family: "Microsoft Yahei"
                                 font.bold: true
-                                color: "#0f748b"
+                                color: "#FD8129"
                                 text: "确定"
                             }
                         }
@@ -123,14 +123,14 @@ Item {
                             width: 80
                             height: 30
                             radius: 5
-                            border.color: "#0f748b"
+                            border.color: "#FD8129"
                             border.width: 1
                             color: backGroundColor
                             Text {
                                 anchors.centerIn: parent
                                 font.family: "Microsoft Yahei"
                                 font.bold: true
-                                color: "#0f748b"
+                                color: "#FD8129"
                                 text: "取消"
                             }
                         }
