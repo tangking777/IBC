@@ -52,6 +52,7 @@ void BasePlotItem::mousePressEvent( QMouseEvent* event )
     else
     {
         item_selected = dynamic_cast<QCPItemText*>(getPlot()->selectedItems().value(0));
+        selectedItemChanged(true);
     }
 }
 
@@ -63,6 +64,7 @@ void BasePlotItem::mouseReleaseEvent( QMouseEvent* event )
     {
         item_selected->setSelected(false);
         item_selected = nullptr;
+        selectedItemChanged(false);
         getPlot()->replot();
         return;
     }
@@ -70,6 +72,7 @@ void BasePlotItem::mouseReleaseEvent( QMouseEvent* event )
     if(!getPlot()->selectedItems().isEmpty())
     {
         item_selected = dynamic_cast<QCPItemText*>(getPlot()->selectedItems().value(0));
+        selectedItemChanged(true);
     }
 }
 
@@ -443,9 +446,12 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
 {
     QCPItemText *textLabel = new QCPItemText(getPlot());
     textLabel->setFont(QFont(qApp->font().family(), 12));
-    textLabel->setPen(QPen(Qt::black));
-    textLabel->position->setCoords(xValue, yValue + 40);
+    textLabel->setPen(QPen(Qt::white));
+    textLabel->position->setCoords(xValue, yValue + 20);
     textLabel->position->setType(QCPItemPosition::ptPlotCoords);
+    textLabel->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    textLabel->setBrush(QBrush(Qt::yellow));
+
     if(type == 1){
         textLabel->position->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
     }
@@ -458,6 +464,7 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
 
     // add the arrow:
     QCPItemLine *arrow = new QCPItemLine(getPlot());
+    arrow->pen().setColor(Qt::yellow);
     arrow->start->setParentAnchor(textLabel->bottomLeft);
     arrow->end->setCoords(xValue, yValue);
     arrow->end->setType(QCPItemPosition::ptPlotCoords);
@@ -471,4 +478,43 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
     }
     arrow->setHead(QCPLineEnding::esSpikeArrow);
     arrow->setSelectable(false);
+    replot();
+}
+
+void CustomPlotItem::deleteCurLabel()
+{
+    if(getPlot() && item_selected != nullptr)
+    {
+        // remove line
+        QCPAbstractItem* closedItem = getPlot()->itemAt(item_selected->bottomLeft->pixelPosition());
+        if(closedItem)
+        {
+            QCPItemLine* lineItem = dynamic_cast<QCPItemLine*>(closedItem);
+            if(lineItem)
+            {
+                getPlot()->removeItem(lineItem);
+            }
+        }
+        getPlot()->removeItem(item_selected);
+        item_selected = nullptr;
+        replot();
+    }
+}
+
+void CustomPlotItem::clearLabels()
+{
+    if(getPlot())
+    {
+        getPlot()->clearItems();
+        replot();
+    }
+}
+
+void CustomPlotItem::editLabel(const QString text)
+{
+    if(getPlot() && item_selected != nullptr)
+    {
+        item_selected->setText(text);
+        replot();
+    }
 }

@@ -39,6 +39,7 @@ protected:
 
     virtual void routeMouseEvents( QMouseEvent* event ) = 0;
     virtual void routeWheelEvents( QWheelEvent* event ) = 0;
+    virtual void selectedItemChanged(bool value) = 0;
     void itemRouteMouseEvents( QMouseEvent* event );
 public slots:
     void graphClicked( QCPAbstractPlottable* plottable );
@@ -60,6 +61,7 @@ public:
 protected:
     virtual void routeMouseEvents( QMouseEvent* event );
     virtual void routeWheelEvents( QWheelEvent* event );
+    virtual void selectedItemChanged(bool value) { selectedTextChanged(value); };
 
 public slots:
     Q_INVOKABLE void setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values);
@@ -75,6 +77,13 @@ public slots:
     Q_INVOKABLE void clearValue();
 
     Q_INVOKABLE void addLabel(const int type, const double xValue, const double yValue, const QString text);
+    Q_INVOKABLE void deleteCurLabel();
+    Q_INVOKABLE void clearLabels();
+    Q_INVOKABLE void editLabel(const QString text);
+
+signals:
+    void selectedTextChanged(bool value);
+
 private:
     QCPGraph* m_TempGraph = nullptr;
     QCPGraph* m_PresGraph = nullptr;

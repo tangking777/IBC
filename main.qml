@@ -295,8 +295,11 @@ ApplicationWindow  {
                         text: qsTr("压强")
                         checked: true
                         onClicked: {
-                            presBox.checked = true;
-                            tempBox.checked = false;
+                            if(!isSelectLabel)
+                            {
+                                presBox.checked = true;
+                                tempBox.checked = false;
+                            }
                         }
                     }
 
@@ -304,8 +307,11 @@ ApplicationWindow  {
                         id: tempBox
                         text: qsTr("温度")
                         onClicked: {
-                            presBox.checked = false;
-                            tempBox.checked = true;
+                            if(!isSelectLabel)
+                            {
+                                presBox.checked = false;
+                                tempBox.checked = true;
+                            }
                         }
                     }
                 }
@@ -340,9 +346,11 @@ ApplicationWindow  {
                         MouseArea{
                             anchors.fill: parent
                             onClicked: {
-                                labelTimeChoose.open();
-                                var time = labelTimeText.text;
-                                labelDc.iOpen(time)
+                                if(!isSelectLabel){
+                                    labelTimeChoose.open();
+                                    var time = labelTimeText.text;
+                                    labelDc.iOpen(time)
+                                }
                             }
                             Popup {
                                 visible: false
@@ -426,10 +434,40 @@ ApplicationWindow  {
                                 onEntered:  parent.color = "#FD9433"
                                 onExited: parent.color = "#FD8129"
                                 onClicked: {
-                                    //    Q_INVOKABLE void addLabel(const int type, const double xValue, const double yValue, const QString text);
-                                    var date = new Date(labelTimeText.text);
-                                    const stime = Math.trunc(Date.parse(date) / 1000);
-                                    myplot.addLabel(1, stime, 0, note_value.text);
+                                    if(!isSelectLabel)
+                                    {
+                                        var date = new Date(labelTimeText.text)
+                                        const curTime = Math.trunc(Date.parse(date) / 1000);
+
+                                        var data = userDataList[cur_user_index];
+                                        var timeData = data["timeData"];
+                                        const firstTime = timeData[0];
+                                        const lastTime = timeData[timeData.length - 1];
+                                        if(curTime < firstTime  || curTime > lastTime)
+                                        {
+                                            // todo : warning
+                                            return;
+                                        }
+                                        const index = curTime - firstTime;
+                                        var yValue = 0;
+                                        var type = 0;
+                                        if(presBox.checked)
+                                        {
+                                            var pressureData = data["pressureData"];
+                                            yValue = pressureData[index];
+                                        }
+                                        else
+                                        {
+                                            type = 1;
+                                            var temperatureData = data["temperatureData"];
+                                            yValue = temperatureData[index];
+                                        }
+
+                                        myplot.addLabel(type, curTime, yValue, note_value.text.trim());
+                                    }
+                                    else {
+                                        myplot.editLabel(note_value.text);
+                                    }
                                     labelSettingPop.close();
                                 }
                             }
@@ -481,10 +519,6 @@ ApplicationWindow  {
             userDataList = ibpicpDataControl.userData;
             userInfoRep.model = userDataList;
         }
-        // onSelectLabeled:
-        // {
-        //     isSelectLabel = value;
-        // }
     }
 
 
@@ -1160,7 +1194,14 @@ ApplicationWindow  {
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
-
+                                if(isSelectLabel)
+                                {
+                                    myplot.deleteCurLabel();
+                                }
+                                else
+                                {
+                                    myplot.clearLabels();
+                                }
                             }
                         }
                     }
@@ -1322,6 +1363,11 @@ ApplicationWindow  {
                         height: parent.height - 10
                         anchors.centerIn: parent
                         Component.onCompleted: initCustomPlot()
+                        onSelectedTextChanged:
+                        {
+                            console.log("plotItem ", value);
+                            isSelectLabel = value;
+                        }
                     }
                 }
 
