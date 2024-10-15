@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
 
     QApplication app(argc, argv);
 
+    app.setWindowIcon(QIcon("qrc:/Res/logo.ico"));
     qmlRegisterType<FileFuncs>("FileFuncs", 1, 0, "FileFuncs");
     qmlRegisterType<IbpicpDataControl>("IbpicpDataControl", 1, 0, "IbpicpDataControl");
     qmlRegisterType<CustomPlotItem>("CustomPlot", 1, 0, "CustomPlotItem");

@@ -52,7 +52,7 @@ Item {
                 width: 40
                 height: 40
                 anchors.centerIn: parent
-                source: isSuccess ? "qrc:/Res/success.png" : "qrc:/Res/note.png"
+                source: isSuccess ? "qrc:/Res/note.png" : "qrc:/Res/fail.png"
             }
         }
         contentItem: Rectangle {

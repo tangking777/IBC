@@ -19,5 +19,6 @@
         <file>Res/delete.png</file>
         <file>Res/edit.png</file>
         <file>Res/note.png</file>
+        <file>Res/logo.ico</file>
     </qresource>
 </RCC>

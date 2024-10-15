@@ -454,7 +454,13 @@ ApplicationWindow  {
                                         const lastTime = timeData[timeData.length - 1];
                                         if(curTime < firstTime  || curTime > lastTime)
                                         {
-                                            // todo : warning
+                                            msg.func = function(){
+
+                                            };
+                                            msg.isSuccess = false;
+                                            msg.tipText = "不在有效时间范围内,请确认!";
+                                            msg.hasCancel = false;
+                                            msg.openMsg();
                                             return;
                                         }
                                         const index = curTime - firstTime;
@@ -577,7 +583,7 @@ ApplicationWindow  {
                             msg.func = function(){
                                 root.close()
                             };
-                            msg.isSuccess = false;
+                            msg.isSuccess = true;
                             msg.tipText = "是否退出程序,请确认!";
                             msg.hasCancel = true;
                             msg.openMsg();
@@ -1002,13 +1008,13 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 80
+                        width: 100
                         height: parent.height
                         Row
                         {
                             anchors.fill: parent
                             Text {
-                                width: 40
+                                width: 60
                                 height: parent.height
                                 text: qsTr("最大值")
                                 color: "#0A6086"
@@ -1044,14 +1050,14 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 80
+                        width: 100
                         height: parent.height
                         Row
                         {
                             anchors.fill: parent
                             Text {
                                 id: minText
-                                width: 40
+                                width: 60
                                 height: parent.height
                                 text: qsTr("最小值")
                                 color: "#BA6C00"
@@ -1086,13 +1092,13 @@ ApplicationWindow  {
                     }
                     Item
                     {
-                        width: 80
+                        width: 100
                         height: parent.height
                         Row
                         {
                             anchors.fill: parent
                             Text {
-                                width: 40
+                                width: 60
                                 height: parent.height
                                 text: qsTr("平均值")
                                 color: "#127070"
@@ -1115,7 +1121,7 @@ ApplicationWindow  {
                         }
                     }
                     Item{
-                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*80 - 2*20 - 90 - 15*4
+                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*100 - 2*20 - 90 - 15*4
                                - (cur_user_index > -1 ? (90 * 4) : 0)
                         height: parent.height
                     }
@@ -1230,7 +1236,7 @@ ApplicationWindow  {
                                         myplot.clearLabels();
                                     }
                                 };
-                                msg.isSuccess = false;
+                                msg.isSuccess = true;
                                 msg.tipText = isSelectLabel ? "是否删除此标签, 请确认!" : "是否清除所有标签, 请确认!";
                                 msg.hasCancel = true;
                                 msg.openMsg();

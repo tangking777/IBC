@@ -11,3 +11,4 @@ HEADERS += \
     src/IbpicpDataControl.h \
     src/qmlplot.h
 RESOURCES += ibpicp.qrc
+RC_FILE = myapp.rc
