@@ -172,7 +172,7 @@ ApplicationWindow  {
         return date;
     }
 
-    function iGetDate(dayIndex, hour, min)
+    function iGetDate(dayIndex, hour, min, second)
     {
         if(dateList.length - 1 < dayIndex){
             return;
@@ -180,7 +180,8 @@ ApplicationWindow  {
         const day = dateList[dayIndex];
         const hourStr = hour < 10 ? ('0' + hour) : hour;
         const minStr = min < 10 ?  ('0' + min) : min;
-        const timeStr = day + " " + (hourStr) + ":" + (minStr)+ ":" + "00";
+        const secondStr = second < 10 ?  ('0' + second) : second;
+        const timeStr = day + " " + (hourStr) + ":" + (minStr)+ ":" + secondStr;
         return timeStr;
     }
 
@@ -264,14 +265,29 @@ ApplicationWindow  {
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape
-        function openWithData(time, note)
+        function openWithData(time, note, type)
         {
             const date = new Date(time * 1000);
             labelTimeText.text = dateToString(date);
             note_value.text = note;
-
+            openType = type;
             labelSettingPop.open();
+            if(type == 0)
+            {
+                presBox.checked = true;
+                presBox.enabled = true;
+                tempBox.enabled = true;
+            }
+            else
+            {
+                presBox.checked = false;
+                presBox.enabled = false;
+                tempBox.checked = false;
+                tempBox.enabled = false;
+            }
         }
+
+        property int openType: 0
 
         Rectangle{
             id: mainRect
@@ -299,29 +315,21 @@ ApplicationWindow  {
                         verticalAlignment: Text.AlignVCenter
                     }
 
+                    ButtonGroup{
+                        id:group
+                        exclusive: true
+                        buttons: [presBox, tempBox]
+                    }
+
+
                     CheckBox {
                         id: presBox
                         text: qsTr("压强")
-                        checked: true
-                        onClicked: {
-                            if(!isSelectLabel)
-                            {
-                                presBox.checked = true;
-                                tempBox.checked = false;
-                            }
-                        }
                     }
 
                     CheckBox {
                         id: tempBox
                         text: qsTr("温度")
-                        onClicked: {
-                            if(!isSelectLabel)
-                            {
-                                presBox.checked = false;
-                                tempBox.checked = true;
-                            }
-                        }
                     }
                 }
                 Row{
@@ -372,7 +380,7 @@ ApplicationWindow  {
                                     id:labelDc
                                     anchors.fill: parent
                                     onIChoose: {
-                                        var d = iGetDate(day, hour, min);
+                                        var d = iGetDate(day, hour, min, second);
                                         labelTimeText.text = d;
                                         labelTimeChoose.close();
                                     }
@@ -445,6 +453,18 @@ ApplicationWindow  {
                                 onClicked: {
                                     if(!isSelectLabel)
                                     {
+                                        if(labelTimeText.text == "" || note_value.text == "")
+                                        {
+                                            msg.func = function(){
+
+                                            };
+                                            msg.isSuccess = false;
+                                            msg.tipText = "标签内容未填写,请确认!";
+                                            msg.hasCancel = false;
+                                            msg.openMsg();
+                                            return;
+                                        }
+
                                         var date = new Date(labelTimeText.text)
                                         const curTime = Math.trunc(Date.parse(date) / 1000);
 
@@ -873,7 +893,7 @@ ApplicationWindow  {
                                             id:dc
                                             anchors.fill: parent
                                             onIChoose: {
-                                                var d = iGetDate(day, hour, min);
+                                                var d = iGetDate(day, hour, min, second);
                                                 if(d > etimeText.text)
                                                 {
                                                     stimeText.text = etimeText.text;
@@ -935,7 +955,7 @@ ApplicationWindow  {
                                             id:endDc
                                             anchors.fill: parent
                                             onIChoose: {
-                                                var d = iGetDate(day, hour, min);
+                                                var d = iGetDate(day, hour, min, second);
                                                 if(d < stimeText.text)
                                                 {
                                                     etimeText.text = stimeText.text;
@@ -1164,20 +1184,22 @@ ApplicationWindow  {
                             onExited: parent.color = "#FFFFFF";
                             onClicked:
                             {
-                                var time, note
+                                var time, note, type
                                 var data = userDataList[cur_user_index];
                                 var timeData = data["timeData"];
                                 if(isSelectLabel)
                                 {
                                     time = myplot.getLabelTime();
                                     note = myplot.getLabelText();
+                                    type = 1;
                                 }
                                 else
                                 {
                                     time = timeData[0];
                                     note = ""
+                                    type = 0;
                                 }
-                                labelSettingPop.openWithData(time, note);
+                                labelSettingPop.openWithData(time, note, type);
                             }
                         }
                     }

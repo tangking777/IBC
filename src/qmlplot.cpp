@@ -478,7 +478,6 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
     arrow->start->setParentAnchor(textLabel->bottomLeft);
     arrow->end->setCoords(xValue, yValue);
     arrow->end->setType(QCPItemPosition::ptPlotCoords);
-    arrow->end->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
     if(type == 1){
         arrow->end->setAxes(getPlot()->xAxis, getPlot()->yAxis2);
     }
@@ -516,35 +515,35 @@ void CustomPlotItem::clearLabels()
 {
     if(getPlot())
     {
-        QList<QCPItemText*> textItemList;
+        QList<QCPAbstractItem*> itemList;
         int itemCount = getPlot()->itemCount();
         for(int i = 0; i < itemCount; i++)
         {
             QCPAbstractItem* item = getPlot()->item(i);
             if(item)
             {
-                QCPItemText* textItem = dynamic_cast<QCPItemText*>(item);
-                if(textItem && textItem->selectable())
+                if(QCPItemText* textItem = dynamic_cast<QCPItemText*>(item))
                 {
-
-                    textItemList.push_back(textItem);
+                    if(textItem->selectable())
+                    {
+                        itemList.push_back(item);
+                    }
                 }
+                else if(QCPItemLine* lineItem = dynamic_cast<QCPItemLine*>(item))
+                {
+                    itemList.push_back(item);
+                }
+
             }
         }
-
-        for(auto tItem : textItemList)
+        for(auto tItem : itemList)
         {
-            QCPAbstractItem* closedItem = getPlot()->itemAt(tItem->bottomLeft->pixelPosition());
-            if(closedItem)
+            if(tItem)
             {
-                QCPItemLine* lineItem = dynamic_cast<QCPItemLine*>(closedItem);
-                if(lineItem)
-                {
-                    getPlot()->removeItem(lineItem);
-                }
+                getPlot()->removeItem(tItem);
             }
-            getPlot()->removeItem(tItem);
         }
+        item_selected = nullptr;
         selectedTextChanged(false);
         replot();
     }
@@ -555,6 +554,7 @@ void CustomPlotItem::editLabel(const QString text)
     if(getPlot() && item_selected != nullptr)
     {
         item_selected->setText(text);
+        item_selected->setSelected(false);
         item_selected = nullptr;
         selectedTextChanged(false);
         replot();
