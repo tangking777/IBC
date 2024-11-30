@@ -572,7 +572,7 @@ ApplicationWindow  {
             Text {
                 anchors.fill: parent
                 anchors.leftMargin: 30
-                text: "颅内压监护仪监护数据查看软件"
+                text: "数据查看软件 | 0.1.0"
                 font.pixelSize:16
                 color: "#E2FFFF"
                 font.family: "微软雅黑"
