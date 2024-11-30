@@ -2,6 +2,8 @@
 #include "./CustomPlot/qcustomplot.h"
 
 #include <QDebug>
+#include "./Xlsx/xlsxdocument.h"
+#include "./Xlsx/xlsxformat.h"
 
 BasePlotItem::BasePlotItem( QQuickItem* parent ) : QQuickPaintedItem( parent )
     , m_CustomPlot(new QCustomPlot() )
@@ -152,7 +154,7 @@ void CustomPlotItem::initCustomPlot()
     m_PresGraph = getPlot()->addGraph();
     m_TempGraph = getPlot()->addGraph(getPlot()->xAxis, getPlot()->yAxis2);
     m_TempGraph->setPen(QPen(Qt::red));
-    m_TempGraph->setName("温度 °C");
+    m_TempGraph->setName("温度 ℃");
     m_PresGraph->setPen(QPen(Qt::blue));
     m_PresGraph->setName("压力 mmHg");
 
@@ -171,7 +173,7 @@ void CustomPlotItem::initCustomPlot()
     getPlot()->yAxis2->setVisible(true);
     getPlot()->yAxis2->setNumberFormat("f");
     getPlot()->yAxis2->setNumberPrecision(2);
-    getPlot()->yAxis2->setLabel("温度 °C");
+    getPlot()->yAxis2->setLabel("温度 ℃");
     getPlot()->yAxis2->setTickLength(10,5);
     getPlot()->yAxis2->setRange(35, 42);
 
@@ -437,6 +439,68 @@ void CustomPlotItem::exportPdf(const QString path)
 {
     getPlot()->savePdf(path);
 }
+void CustomPlotItem::exportExcel(const QString path, const QString data)
+{
+    QXlsx::Document xlsx;
+    QXlsx::Format format;
+    format.setHorizontalAlignment(QXlsx::Format::AlignLeft);
+    format.setVerticalAlignment(QXlsx::Format::AlignVCenter);
+
+    QJsonDocument document = QJsonDocument::fromJson(data.toUtf8());
+    if (document.isArray()) {
+        QJsonArray jsonArray = document.array();
+        QVariantList dataList =  jsonArray.toVariantList();
+        int sheetIndex = 0;
+        for(QVariant data : dataList)
+        {
+            QMap<QString, QVariant> dataMap = data.toMap();
+            const QString id = dataMap["id"].toString();
+            if(sheetIndex != 0)
+            {
+                xlsx.addSheet();
+                xlsx.selectSheet(id);
+            }
+
+            xlsx.setColumnWidth(1, 30);
+            xlsx.setColumnWidth(2, 15);
+            xlsx.setColumnWidth(3, 15);
+            xlsx.setColumnWidth(4, 10);
+
+            int rowIndex = 1;
+            int cloIndex = 1;
+            xlsx.write(rowIndex, cloIndex, id, format);
+            xlsx.write(rowIndex, ++cloIndex, dataMap["name"].toString(), format);
+            xlsx.write(rowIndex, ++cloIndex, dataMap["isMan"].toBool() ? "男" : "女", format);
+            xlsx.write(rowIndex, ++cloIndex, dataMap["age"].toString(), format);
+            QVariantList timeVec = dataMap["timeData"].toList();
+            QVariantList preVec = dataMap["pressureData"].toList();
+            QVariantList tempVec = dataMap["temperatureData"].toList();
+            size_t vecSize = std::min(timeVec.size(), std::min(preVec.size(), tempVec.size()));
+            rowIndex += 2;
+            cloIndex = 1;
+            xlsx.write(rowIndex, cloIndex, "时间", format);
+            xlsx.write(rowIndex, ++cloIndex, "压力 mmHg", format);
+            xlsx.write(rowIndex, ++cloIndex, "温度 ℃", format);
+            for (size_t i = 0; i < vecSize; i++)
+            {
+                if(preVec[i] == 0 && tempVec[i] == 0)
+                {
+                    continue;
+                }
+                ++rowIndex;
+                cloIndex = 1;
+                QDateTime timeValue = QDateTime::fromSecsSinceEpoch(timeVec[i].toInt());
+                QString timeStr = timeValue.toString("yyyy-MM-dd hh:mm:ss");
+                xlsx.write(rowIndex, cloIndex, timeStr, format);
+                xlsx.write(rowIndex, ++cloIndex, preVec[i].toDouble(), format);
+                xlsx.write(rowIndex, ++cloIndex, tempVec[i].toDouble(), format);
+            }
+            sheetIndex++;
+        }
+    }
+    xlsx.saveAs(path);
+}
+
 
 void CustomPlotItem::clearValue()
 {

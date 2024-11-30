@@ -1,6 +1,6 @@
 QT += qml quick core widgets printsupport
 include(src/Xlsx/qtxlsx.pri)
-
+QMAKE_CXXFLAGS += /utf-8
 SOURCES += main.cpp \
     src/CustomPlot/qcustomplot.cpp \
     src/FileFuncs.cpp \

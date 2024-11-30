@@ -236,14 +236,16 @@ ApplicationWindow  {
     FileDialog {
         id: outputTextDialog
         title: "导出文本"
-        nameFilters: ["files (*.bson)"]
+        nameFilters: ["files (*.xlsx)"]
         //fileMode: FileDialog.SaveFile
         selectExisting: false
         onAccepted: {
+            // var path = outputTextDialog.fileUrl.toString().replace("file:///", "")
+            // var str = JSON.stringify(userDataList);
+            // console.log("path", path);
+            // ff.saveStringToFile(str, path);
             var path = outputTextDialog.fileUrl.toString().replace("file:///", "")
-            var str = JSON.stringify(userDataList);
-            console.log("path", path);
-            ff.saveStringToFile(str, path);
+            myplot.exportExcel(path, JSON.stringify(userDataList));
         }
     }
 

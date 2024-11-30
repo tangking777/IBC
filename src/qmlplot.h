@@ -74,6 +74,7 @@ public slots:
     Q_INVOKABLE void replot();
     Q_INVOKABLE void rescaleAxes();
     Q_INVOKABLE void exportPdf(const QString path);
+    Q_INVOKABLE void exportExcel(const QString path, const QString data);
     Q_INVOKABLE void clearValue();
 
     Q_INVOKABLE void addLabel(const int type, const double xValue, const double yValue, const QString text);

@@ -232,7 +232,7 @@ bool IbpicpDataControl::ReadBsonData(QString filePath)
             const QString id = dataMap["id"].toString();
             infoMap.name = dataMap["name"].toString();
             infoMap.isMan = dataMap["isMan"].toBool();
-            infoMap.age = dataMap["isMan"].toUInt();
+            infoMap.age = dataMap["age"].toUInt();
             infoMap.timeVec = dataMap["timeData"].value<QVector<double>>();
             infoMap.preVec = dataMap["pressureData"].value<QVector<double>>();
             infoMap.tempVec = dataMap["temperatureData"].value<QVector<double>>();
