@@ -217,18 +217,19 @@ void CustomPlotItem::initCustomPlot()
     m_cur_Label_power->setFont(QFont(qApp->font().family(), 13));
     m_cur_Label_power->setColor(Qt::white);
     m_cur_Label_power->setVisible(false);
-    m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignTop);
     m_cur_Label_power->setBrush(QBrush(Qt::blue));
     m_cur_Label_power->setSelectable(false);
     m_cur_Label_power->setPadding(QMargins(5,5,5,5));
 
 
     m_cur_Label_time = new QCPItemText(getPlot());
+    m_cur_Label_time->position->setParentAnchor(m_tracer_power->position);
     m_cur_Label_time->setFont(QFont(qApp->font().family(), 13));
     m_cur_Label_time->setColor(Qt::white);
     m_cur_Label_time->setVisible(false);
-    m_cur_Label_time->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_cur_Label_time->setBrush(QBrush(Qt::red));
+    m_cur_Label_time->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
+    m_cur_Label_time->setBrush(QBrush(Qt::blue));
     m_cur_Label_time->setSelectable(false);
     m_cur_Label_time->setPadding(QMargins(5,5,5,5));
 
@@ -306,7 +307,7 @@ void CustomPlotItem::routeMouseEvents( QMouseEvent* event )
             m_cur_Label_power->position->setCoords(0, 10);
             m_cur_Label_power->setText(QString::number(yValue2, 'f', 1));
 
-            m_cur_Label_time->position->setCoords(cur_x, 0);
+            m_cur_Label_time->position->setCoords(0, 10);
             QDateTime timeValue = QDateTime::fromSecsSinceEpoch(cur_x);
             m_cur_Label_time->setText(timeValue.toString("yyyy-MM-dd hh:mm:ss"));
 
