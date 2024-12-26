@@ -23,9 +23,8 @@ public:
     QCustomPlot *getPlot();
     QCPItemTracer *m_tracer_temp = nullptr;
     QCPItemText *m_cur_Label_temp = nullptr;
-    QCPItemTracer *m_tracer_power = nullptr;
-    QCPItemText *m_cur_Label_power = nullptr;
-    QCPItemTracer *m_tracer_time = nullptr;
+    QCPItemTracer *m_tracer_pres = nullptr;
+    QCPItemText *m_cur_Label_pres = nullptr;
     QCPItemText *m_cur_Label_time = nullptr;
     QCPItemStraightLine *m_refer_lineV = nullptr;
     QCPItemText* item_selected = nullptr;
@@ -62,14 +61,17 @@ protected:
     virtual void routeMouseEvents( QMouseEvent* event );
     virtual void routeWheelEvents( QWheelEvent* event );
     virtual void selectedItemChanged(bool value) { selectedTextChanged(value); };
-
+    void setLabelVisible(bool visible, const int index);
 public slots:
-    Q_INVOKABLE void setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values);
-    Q_INVOKABLE void setCurrentGraphData(const QVector<double> &keys, const QVector<double> &values);
-    Q_INVOKABLE void setVoltageGraphVisible(bool value);
-    Q_INVOKABLE void setCurrentGraphVisible(bool value);
-    Q_INVOKABLE void setVoltageRange(double min, double max);
-    Q_INVOKABLE void setCurrentRange(double min, double max);
+    Q_INVOKABLE void initPlot();
+    Q_INVOKABLE void setTempGraphData(const QVector<double> &keys, const QVector<double> &values);
+    Q_INVOKABLE void setPresGraphData(const QVector<double> &keys, const QVector<double> &values);
+    Q_INVOKABLE void setTempGraphVisible(bool value);
+    Q_INVOKABLE void setPresGraphVisible(bool value);
+    Q_INVOKABLE bool getTempGraphVisible();
+    Q_INVOKABLE bool getPresGraphVisible();
+    Q_INVOKABLE void setTempRange(double min, double max);
+    Q_INVOKABLE void setPresRange(double min, double max);
     Q_INVOKABLE void setTimeRange(double min, double max);
     Q_INVOKABLE void replot();
     Q_INVOKABLE void rescaleAxes();
@@ -83,7 +85,7 @@ public slots:
     Q_INVOKABLE void editLabel(const QString text);
     Q_INVOKABLE QString getLabelText();
     Q_INVOKABLE double getLabelTime();
-
+    Q_INVOKABLE QString getTimeLabel();
 signals:
     void selectedTextChanged(bool value);
 

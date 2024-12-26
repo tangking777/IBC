@@ -153,9 +153,9 @@ void CustomPlotItem::initCustomPlot()
 
     m_PresGraph = getPlot()->addGraph();
     m_TempGraph = getPlot()->addGraph(getPlot()->xAxis, getPlot()->yAxis2);
-    m_TempGraph->setPen(QPen(Qt::red));
+    m_TempGraph->setPen(QPen(QColor(255, 59, 48)));
     m_TempGraph->setName("温度 ℃");
-    m_PresGraph->setPen(QPen(Qt::blue));
+    m_PresGraph->setPen(QPen(QColor(0, 122, 255)));
     m_PresGraph->setName("压力 mmHg");
 
     QSharedPointer<QCPAxisTickerDateTime> dateTicker(new QCPAxisTickerDateTime);
@@ -185,21 +185,21 @@ void CustomPlotItem::initCustomPlot()
 
     m_tracer_temp = new QCPItemTracer(getPlot());
     m_tracer_temp->setStyle(QCPItemTracer::tsCircle);
-    m_tracer_temp->setPen(QPen(Qt::red, 3, Qt::SolidLine));
+    m_tracer_temp->setPen(QPen(QColor(0, 122, 255), 3, Qt::SolidLine));
     m_tracer_temp->setBrush(Qt::SolidPattern);
     m_tracer_temp->setVisible(false);
     m_tracer_temp->position->setType(QCPItemPosition::ptPlotCoords);
     m_tracer_temp->setSize(5);
     m_tracer_temp->setGraph(m_TempGraph);
 
-    m_tracer_power = new QCPItemTracer(getPlot());
-    m_tracer_power->setStyle(QCPItemTracer::tsCircle);
-    m_tracer_power->setPen(QPen(Qt::blue, 3, Qt::SolidLine));
-    m_tracer_power->setBrush(Qt::SolidPattern);
-    m_tracer_power->setVisible(false);
-    m_tracer_power->position->setType(QCPItemPosition::ptPlotCoords);
-    m_tracer_power->setSize(5);
-    m_tracer_power->setGraph(m_PresGraph);
+    m_tracer_pres = new QCPItemTracer(getPlot());
+    m_tracer_pres->setStyle(QCPItemTracer::tsCircle);
+    m_tracer_pres->setPen(QPen(QColor(255, 59, 48), 3, Qt::SolidLine));
+    m_tracer_pres->setBrush(Qt::SolidPattern);
+    m_tracer_pres->setVisible(false);
+    m_tracer_pres->position->setType(QCPItemPosition::ptPlotCoords);
+    m_tracer_pres->setSize(5);
+    m_tracer_pres->setGraph(m_PresGraph);
 
     m_cur_Label_temp = new QCPItemText(getPlot());
     m_cur_Label_temp->position->setParentAnchor(m_tracer_temp->position);
@@ -207,34 +207,33 @@ void CustomPlotItem::initCustomPlot()
     m_cur_Label_temp->setColor(Qt::white);
     m_cur_Label_temp->setVisible(false);
     m_cur_Label_temp->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_cur_Label_temp->setBrush(QBrush(Qt::red));
+    m_cur_Label_temp->setBrush(QBrush(QColor(0, 122, 255)));
     m_cur_Label_temp->setSelectable(false);
     m_cur_Label_temp->setPadding(QMargins(5,5,5,5));
 
 
-    m_cur_Label_power = new QCPItemText(getPlot());
-    m_cur_Label_power->position->setParentAnchor(m_tracer_power->position);
-    m_cur_Label_power->setFont(QFont(qApp->font().family(), 13));
-    m_cur_Label_power->setColor(Qt::white);
-    m_cur_Label_power->setVisible(false);
-    m_cur_Label_power->setPositionAlignment(Qt::AlignLeft | Qt::AlignTop);
-    m_cur_Label_power->setBrush(QBrush(Qt::blue));
-    m_cur_Label_power->setSelectable(false);
-    m_cur_Label_power->setPadding(QMargins(5,5,5,5));
+    m_cur_Label_pres = new QCPItemText(getPlot());
+    m_cur_Label_pres->position->setParentAnchor(m_tracer_pres->position);
+    m_cur_Label_pres->setFont(QFont(qApp->font().family(), 13));
+    m_cur_Label_pres->setColor(Qt::white);
+    m_cur_Label_pres->setVisible(false);
+    m_cur_Label_pres->setPositionAlignment(Qt::AlignLeft | Qt::AlignTop);
+    m_cur_Label_pres->setBrush(QBrush(QColor(255, 59, 48)));
+    m_cur_Label_pres->setSelectable(false);
+    m_cur_Label_pres->setPadding(QMargins(5,5,5,5));
 
 
     m_cur_Label_time = new QCPItemText(getPlot());
-    m_cur_Label_time->position->setParentAnchor(m_tracer_power->position);
     m_cur_Label_time->setFont(QFont(qApp->font().family(), 13));
     m_cur_Label_time->setColor(Qt::white);
     m_cur_Label_time->setVisible(false);
     m_cur_Label_time->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
-    m_cur_Label_time->setBrush(QBrush(Qt::blue));
+    m_cur_Label_time->setBrush(QBrush(QColor(76, 217, 100)));
     m_cur_Label_time->setSelectable(false);
     m_cur_Label_time->setPadding(QMargins(5,5,5,5));
 
     m_refer_lineV = new QCPItemStraightLine(getPlot());
-    m_refer_lineV->setPen(QPen(Qt::red, 1, Qt::DashLine));
+    m_refer_lineV->setPen(QPen(QColor(255, 59, 48), 1, Qt::DashLine));
     m_refer_lineV->setVisible(false);
     connect( getPlot(), &QCustomPlot::afterReplot, this, &CustomPlotItem::onCustomReplot );
 }
@@ -276,43 +275,59 @@ void CustomPlotItem::routeMouseEvents( QMouseEvent* event )
         }
         else if (event->buttons() & Qt::RightButton)
         {
+            m_cur_Label_time->setVisible(true);
             m_refer_lineV->setVisible(true);
-            m_tracer_temp->setVisible(true);
-            m_cur_Label_temp->setVisible(true);
 
-            if(getPlot()->yAxis2->visible())
+            if(!m_TempGraph->visible())
             {
-                m_tracer_power->setVisible(true);
-                m_cur_Label_power->setVisible(true);
-                m_cur_Label_time->setVisible(true);
+                m_tracer_temp->setVisible(false);
+                m_cur_Label_temp->setVisible(false);
+            }
+            else
+            {
+                m_tracer_temp->setVisible(true);
+                m_cur_Label_temp->setVisible(true);
+            }
+
+            if(!m_PresGraph->visible())
+            {
+                m_tracer_pres->setVisible(false);
+                m_cur_Label_pres->setVisible(false);
+            }
+            else
+            {
+                m_tracer_pres->setVisible(true);
+                m_cur_Label_pres->setVisible(true);
             }
 
             double cur_x = getPlot()->xAxis->pixelToCoord(event->pos().x());
 
-            m_tracer_temp->setGraph(getPlot()->graph(0));
+            m_tracer_pres->setGraph(getPlot()->graph(0));
+            m_tracer_pres->setGraphKey(cur_x);
+            m_tracer_pres->setInterpolating(true);
+            m_tracer_pres->updatePosition();
+
+            m_tracer_temp->setGraph(getPlot()->graph(1));
             m_tracer_temp->setGraphKey(cur_x);
             m_tracer_temp->setInterpolating(true);
             m_tracer_temp->updatePosition();
-
-            m_tracer_power->setGraph(getPlot()->graph(1));
-            m_tracer_power->setGraphKey(cur_x);
-            m_tracer_power->setInterpolating(true);
-            m_tracer_power->updatePosition();
 
             double yValue = m_tracer_temp->position->value();
             m_cur_Label_temp->position->setCoords(0, 10);
             m_cur_Label_temp->setText(QString::number(yValue, 'f', 1));
 
-            double yValue2 = m_tracer_power->position->value();
-            m_cur_Label_power->position->setCoords(0, 10);
-            m_cur_Label_power->setText(QString::number(yValue2, 'f', 1));
+            double yValue2 = m_tracer_pres->position->value();
+            m_cur_Label_pres->position->setCoords(0, 10);
+            m_cur_Label_pres->setText(QString::number(yValue2, 'f', 1));
 
-            m_cur_Label_time->position->setCoords(0, 10);
+            double lowerPos = getPlot()->yAxis->range().lower;
+            double upperPos = getPlot()->yAxis->range().upper;
+            m_cur_Label_time->position->setCoords(cur_x, lowerPos);
             QDateTime timeValue = QDateTime::fromSecsSinceEpoch(cur_x);
             m_cur_Label_time->setText(timeValue.toString("yyyy-MM-dd hh:mm:ss"));
 
-            m_refer_lineV->point1->setCoords(cur_x, 0);
-            m_refer_lineV->point2->setCoords(cur_x, 100);
+            m_refer_lineV->point1->setCoords(cur_x, lowerPos - 100);
+            m_refer_lineV->point2->setCoords(cur_x, upperPos + 100);
 
             getPlot()->replot();
         }
@@ -361,26 +376,83 @@ void CustomPlotItem::routeWheelEvents( QWheelEvent* event )
         if(getPlot()->yAxis->range().lower < yAxisMinValue
             || getPlot()->yAxis->range().upper > yAxisMaxValue)
         {
-            setCurrentRange(yAxisMinValue, yAxisMaxValue);
+            setPresRange(yAxisMinValue, yAxisMaxValue);
         }
 
         if(getPlot()->yAxis2->range().lower < yAxis2MinValue
             || getPlot()->yAxis2->range().upper > yAxis2MaxValue)
         {
-            setVoltageRange(yAxis2MinValue, yAxis2MaxValue);
+            setTempRange(yAxis2MinValue, yAxis2MaxValue);
         }
     }
 }
 
+void CustomPlotItem::setLabelVisible(bool visible, const int index)
+{
+    if(getPlot())
+    {
+        QList<QCPAbstractItem*> itemList;
+        int itemCount = getPlot()->itemCount();
+        for(int i = 0; i < itemCount; i++)
+        {
+            QCPAbstractItem* item = getPlot()->item(i);
+            if(item)
+            {
+                if(QCPItemText* textItem = dynamic_cast<QCPItemText*>(item))
+                {
+                    if(textItem->selectable())
+                    {
+                        QCPAxis *associatedAxis = textItem->position->valueAxis();
+                        if(associatedAxis == getPlot()->yAxis && index == 0)
+                        {
+                            textItem->setVisible(visible);
+                        }
 
-void CustomPlotItem::setVoltageGraphData(const QVector<double> &keys, const QVector<double> &values)
+                        if(associatedAxis == getPlot()->yAxis2 && index == 1)
+                        {
+                            textItem->setVisible(visible);
+                        }
+                    }
+                }
+                else if(QCPItemLine* lineItem = dynamic_cast<QCPItemLine*>(item))
+                {
+                    QCPAxis *associatedAxis = lineItem->end->valueAxis();
+                    if(associatedAxis == getPlot()->yAxis && index == 0)
+                    {
+                        lineItem->setVisible(visible);
+                    }
+
+                    if(associatedAxis == getPlot()->yAxis2 && index == 1)
+                    {
+                        lineItem->setVisible(visible);
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+void CustomPlotItem::initPlot()
+{
+    m_tracer_temp->setVisible(false);
+    m_cur_Label_temp->setVisible(false);
+    m_tracer_pres->setVisible(false);
+    m_cur_Label_pres->setVisible(false);
+    m_cur_Label_time->setVisible(false);
+    m_refer_lineV->setVisible(false);
+    item_selected = nullptr;
+}
+
+
+void CustomPlotItem::setTempGraphData(const QVector<double> &keys, const QVector<double> &values)
 {
     if(m_TempGraph){
         m_TempGraph->setData(keys, values);
     }
 }
 
-void CustomPlotItem::setCurrentGraphData(const QVector<double> &keys, const QVector<double> &values)
+void CustomPlotItem::setPresGraphData(const QVector<double> &keys, const QVector<double> &values)
 {
     if(m_PresGraph)
     {
@@ -388,28 +460,46 @@ void CustomPlotItem::setCurrentGraphData(const QVector<double> &keys, const QVec
     }
 }
 
-void CustomPlotItem::setVoltageGraphVisible(bool value)
+void CustomPlotItem::setTempGraphVisible(bool value)
 {
     if(m_TempGraph){
         m_TempGraph->setVisible(value);
         getPlot()->yAxis2->setVisible(value);
+        setLabelVisible(value, 1);
     }
 }
 
-void CustomPlotItem::setCurrentGraphVisible(bool value)
+void CustomPlotItem::setPresGraphVisible(bool value)
 {
     if(m_PresGraph)
     {
         m_PresGraph->setVisible(value);
+        setLabelVisible(value, 0);
     }
 }
 
-void CustomPlotItem::setVoltageRange(double min, double max)
+bool CustomPlotItem::getTempGraphVisible()
+{
+    if(m_TempGraph){
+        return m_TempGraph->visible();
+    }
+    return false;
+}
+
+bool CustomPlotItem::getPresGraphVisible()
+{
+    if(m_PresGraph){
+        return m_PresGraph->visible();
+    }
+    return false;
+}
+
+void CustomPlotItem::setTempRange(double min, double max)
 {
     getPlot()->yAxis2->setRange(min, max);
 }
 
-void CustomPlotItem::setCurrentRange(double min, double max)
+void CustomPlotItem::setPresRange(double min, double max)
 {
     getPlot()->yAxis->setRange(min, max);
 }
@@ -446,22 +536,19 @@ void CustomPlotItem::exportExcel(const QString path, const QString data)
     QXlsx::Format format;
     format.setHorizontalAlignment(QXlsx::Format::AlignLeft);
     format.setVerticalAlignment(QXlsx::Format::AlignVCenter);
+    format.setFont(QFont(qApp->font().family(), 12));
 
     QJsonDocument document = QJsonDocument::fromJson(data.toUtf8());
     if (document.isArray()) {
         QJsonArray jsonArray = document.array();
         QVariantList dataList =  jsonArray.toVariantList();
-        int sheetIndex = 0;
+        //int sheetIndex = 0;
         for(QVariant data : dataList)
         {
             QMap<QString, QVariant> dataMap = data.toMap();
             const QString id = dataMap["id"].toString();
-            if(sheetIndex != 0)
-            {
-                xlsx.addSheet();
-                xlsx.selectSheet(id);
-            }
-
+            xlsx.addSheet(id);
+            xlsx.selectSheet(id);
             xlsx.setColumnWidth(1, 30);
             xlsx.setColumnWidth(2, 15);
             xlsx.setColumnWidth(3, 15);
@@ -496,7 +583,7 @@ void CustomPlotItem::exportExcel(const QString path, const QString data)
                 xlsx.write(rowIndex, ++cloIndex, preVec[i].toDouble(), format);
                 xlsx.write(rowIndex, ++cloIndex, tempVec[i].toDouble(), format);
             }
-            sheetIndex++;
+            //sheetIndex++;
         }
     }
     xlsx.saveAs(path);
@@ -522,7 +609,7 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
     textLabel->position->setCoords(xValue, yValue);
     textLabel->position->setType(QCPItemPosition::ptPlotCoords);
     textLabel->setPositionAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    textLabel->setBrush(QBrush(QColor(72, 201, 176)));
+    textLabel->setBrush(QBrush(QColor(76, 217, 100)));
     textLabel->setPadding(QMargins(5,5,5,5));
     textLabel->setSelectedFont(QFont(qApp->font().family(), 11));
     textLabel->setSelectedBrush(QBrush(QColor(72, 201, 176, 156)));
@@ -539,7 +626,7 @@ void CustomPlotItem::addLabel(const int type, const double xValue, const double 
 
     // add the arrow:
     QCPItemLine *arrow = new QCPItemLine(getPlot());
-    arrow->setPen(QPen(QColor(72, 201, 176), 1.8, Qt::SolidLine));
+    arrow->setPen(QPen(QColor(76, 217, 100), 1.8, Qt::SolidLine));
     arrow->start->setParentAnchor(textLabel->bottomLeft);
     arrow->end->setCoords(xValue, yValue);
     arrow->end->setType(QCPItemPosition::ptPlotCoords);
@@ -651,4 +738,11 @@ double CustomPlotItem::getLabelTime()
         }
         return 0;
     }
+}
+
+QString CustomPlotItem::getTimeLabel()
+{
+    if(m_cur_Label_time->visible())
+        return m_cur_Label_time->text();
+    return "";
 }

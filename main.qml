@@ -2,6 +2,8 @@ import QtQuick 2.12
 import QtQuick.Window 2.12
 import QtQuick.Dialogs 1.3
 import QtQuick.Controls 2.5
+import QtQuick.Templates 2.12 as T
+
 //import Qt.labs.platform 1.1
 
 import "./qml/"
@@ -49,16 +51,17 @@ ApplicationWindow  {
             labelDc.dayList = dayList;
             dateList = dayList;
 
-            myplot.setCurrentGraphData(timeData, pressureData);
+            myplot.initPlot();
+            myplot.setPresGraphData(timeData, pressureData);
             var id = data["id"];
             if(id.endsWith("P"))
             {
-                myplot.setVoltageGraphVisible(false);
+                myplot.setTempGraphVisible(false);
             }
             else
             {
-                myplot.setVoltageGraphVisible(true);
-                myplot.setVoltageGraphData(timeData, temperatureData);
+                myplot.setTempGraphVisible(true);
+                myplot.setTempGraphData(timeData, temperatureData);
             }
             myplot.rescaleAxes()
             myplot.replot();
@@ -225,7 +228,6 @@ ApplicationWindow  {
         id: outputFileDialog
         title: "导出PDF"
         nameFilters: ["files (*.pdf)"]
-        //fileMode: FileDialog.SaveFile
         selectExisting: false
         onAccepted: {
             var path = outputFileDialog.fileUrl.toString().replace("file:///", "")
@@ -235,15 +237,10 @@ ApplicationWindow  {
 
     FileDialog {
         id: outputTextDialog
-        title: "导出文本"
+        title: "导出Excel"
         nameFilters: ["files (*.xlsx)"]
-        //fileMode: FileDialog.SaveFile
         selectExisting: false
         onAccepted: {
-            // var path = outputTextDialog.fileUrl.toString().replace("file:///", "")
-            // var str = JSON.stringify(userDataList);
-            // console.log("path", path);
-            // ff.saveStringToFile(str, path);
             var path = outputTextDialog.fileUrl.toString().replace("file:///", "")
             myplot.exportExcel(path, JSON.stringify(userDataList));
         }
@@ -259,6 +256,241 @@ ApplicationWindow  {
     }
 
     Popup {
+        id: showSettingPop
+        width: 320
+        height: 170
+        anchors.centerIn: parent
+        visible: false
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape
+        function myOpen()
+        {
+            showPresBox.checked = myplot.getPresGraphVisible();
+            hidePresBox.checked = !showPresBox.checked;
+
+            showTempBox.checked = myplot.getTempGraphVisible();
+            hideTempBox.checked = !showTempBox.checked;
+            open();
+        }
+        Rectangle{
+            anchors.fill: parent
+            color: "#F9F9F9"
+            radius: 5
+            border.color: "#33364460"
+            border.width: 0.5
+            Column{
+                width: parent.width - 20
+                height: parent.height - 20
+                anchors.centerIn : parent
+                spacing: 20
+                Row{
+                    width: parent.width
+                    height: 30
+                    spacing: 20
+                    Text {
+                        width: 70
+                        height: parent.height
+                        text: qsTr("压力数据: ")
+                        font.pixelSize: 14
+                        font.family: "微软雅黑"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    ButtonGroup{
+                        id:groupPres
+                        exclusive: true
+                        buttons: [showPresBox, hidePresBox]
+                    }
+
+
+                    T.CheckBox {
+                        id: showPresBox
+                        width:80
+                        height: parent.height
+                        indicator: Rectangle {
+                            width: height;
+                            height: parent.height - 10;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            color: !showPresBox.enabled ? "#E5E5E5" : "transparent";
+                            border.color: showPresBox.checked ? "#0B81FF" : "#E5E5E5";
+                            border.width: showPresBox.checked ? 6 : 2;
+                            radius: 2;
+                        }
+                        contentItem: Text {
+                            text: qsTr("显示")
+                            font.pixelSize: 14;
+                            font.family: "微软雅黑";
+                            horizontalAlignment: Text.AlignHCenter;
+                            verticalAlignment: Text.AlignVCenter;
+                        }
+                    }
+
+                    T.CheckBox {
+                        id: hidePresBox
+                        width:80
+                        height: parent.height
+
+                        indicator: Rectangle {
+                            width: height;
+                            height: parent.height - 10;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            color: !hidePresBox.enabled ? "#E5E5E5" : "transparent";
+                            border.color: hidePresBox.checked ? "#0B81FF" : "#E5E5E5";
+                            border.width: hidePresBox.checked ? 6 : 2;
+                            radius: 2;
+                        }
+                        contentItem: Text {
+                            text: qsTr("隐藏")
+                            font.pixelSize: 14;
+                            font.family: "微软雅黑";
+                            horizontalAlignment: Text.AlignHCenter;
+                            verticalAlignment: Text.AlignVCenter;
+                        }
+                    }
+                }
+                Row{
+                    width: parent.width
+                    height: 30
+                    spacing: 20
+                    Text {
+                        width: 70
+                        height: parent.height
+                        text: qsTr("温度数据: ")
+                        font.pixelSize: 14
+                        font.family: "微软雅黑"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    ButtonGroup{
+                        id:groupTemp
+                        exclusive: true
+                        buttons: [showTempBox, hideTempBox]
+                    }
+
+
+                    T.CheckBox {
+                        id: showTempBox
+                        width:80
+                        height: parent.height
+                        checked: myplot.getPresGraphVisible()
+                        indicator: Rectangle {
+                            width: height;
+                            height: parent.height - 10;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            color: !showTempBox.enabled ? "#E5E5E5" : "transparent";
+                            border.color: showTempBox.checked ? "#0B81FF" : "#E5E5E5";
+                            border.width: showTempBox.checked ? 6 : 2;
+                            radius: 2;
+                        }
+                        contentItem: Text {
+                            text: qsTr("显示")
+                            font.pixelSize: 14;
+                            font.family: "微软雅黑";
+                            horizontalAlignment: Text.AlignHCenter;
+                            verticalAlignment: Text.AlignVCenter;
+                        }
+                    }
+
+                    T.CheckBox {
+                        id: hideTempBox
+                        width:80
+                        height: parent.height
+
+                        indicator: Rectangle {
+                            width: height;
+                            height: parent.height - 10;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            color: !hideTempBox.enabled ? "#E5E5E5" : "transparent";
+                            border.color: hideTempBox.checked ? "#0B81FF" : "#E5E5E5";
+                            border.width: hideTempBox.checked ? 6 : 2;
+                            radius: 2;
+                        }
+                        contentItem: Text {
+                            text: qsTr("隐藏")
+                            font.pixelSize: 14;
+                            font.family: "微软雅黑";
+                            horizontalAlignment: Text.AlignHCenter;
+                            verticalAlignment: Text.AlignVCenter;
+                        }
+                    }
+                }
+                Row{
+                    width: parent.width
+                    height: 30
+                    Item {
+                        width: parent.width / 2
+                        height: parent.height
+                        Rectangle{
+                            width: 90
+                            height: parent.height
+                            anchors.centerIn: parent
+                            color: "#FD8129"
+                            radius: 5
+                            Text {
+                                anchors.fill: parent
+                                text: qsTr("确定")
+                                font.pixelSize: 12
+                                font.bold: true
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                color: "#FFFFFF"
+                            }
+                            MouseArea{
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered:  parent.color = "#FD9433"
+                                onExited: parent.color = "#FD8129"
+                                onClicked: {
+                                    myplot.initPlot();
+                                    myplot.setTempGraphVisible(showTempBox.checked);
+                                    myplot.setPresGraphVisible(showPresBox.checked);
+                                    myplot.replot();
+                                    showSettingPop.close();
+                                }
+                            }
+                        }
+                    }
+
+                    Item {
+                        width: parent.width / 2
+                        height: parent.height
+                        Rectangle{
+                            width: 90
+                            height: parent.height
+                            color: "#FD8129"
+                            anchors.centerIn: parent
+                            radius: 5
+                            Text {
+                                anchors.fill: parent
+                                text: qsTr("取消")
+                                font.pixelSize: 12
+                                font.bold: true
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                color: "#FFFFFF"
+                            }
+                            MouseArea{
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onEntered:  parent.color = "#FD9433"
+                                onExited: parent.color = "#FD8129"
+                                onClicked: {
+                                    showSettingPop.close();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Popup {
         id: labelSettingPop
         width: 320
         height: 220
@@ -269,8 +501,7 @@ ApplicationWindow  {
         closePolicy: Popup.CloseOnEscape
         function openWithData(time, note, type)
         {
-            const date = new Date(time * 1000);
-            labelTimeText.text = dateToString(date);
+            labelTimeText.text = time;
             note_value.text = note;
             openType = type;
             labelSettingPop.open();
@@ -322,16 +553,50 @@ ApplicationWindow  {
                         exclusive: true
                         buttons: [presBox, tempBox]
                     }
-
-
-                    CheckBox {
+                    T.CheckBox {
                         id: presBox
-                        text: qsTr("压强")
+                        width:80
+                        height: parent.height
+
+                        indicator: Rectangle {
+                            width: height;
+                            height: parent.height - 10;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            color: !presBox.enabled ? "#E5E5E5" : "transparent";
+                            border.color: presBox.checked ? "#0B81FF" : "#E5E5E5";
+                            border.width: presBox.checked ? 6 : 2;
+                            radius: 2;
+                        }
+                        contentItem: Text {
+                            text: qsTr("压力")
+                            font.pixelSize: 14;
+                            font.family: "微软雅黑";
+                            horizontalAlignment: Text.AlignHCenter;
+                            verticalAlignment: Text.AlignVCenter;
+                        }
                     }
 
-                    CheckBox {
+                    T.CheckBox {
                         id: tempBox
-                        text: qsTr("温度")
+                        width:80
+                        height: parent.height
+
+                        indicator: Rectangle {
+                            width: height;
+                            height: parent.height - 10;
+                            anchors.verticalCenter: parent.verticalCenter;
+                            color: !tempBox.enabled ? "#E5E5E5" : "transparent";
+                            border.color: tempBox.checked ? "#0B81FF" : "#E5E5E5";
+                            border.width: tempBox.checked ? 6 : 2;
+                            radius: 2;
+                        }
+                        contentItem: Text {
+                            text: qsTr("温度")
+                            font.pixelSize: 14;
+                            font.family: "微软雅黑";
+                            horizontalAlignment: Text.AlignHCenter;
+                            verticalAlignment: Text.AlignVCenter;
+                        }
                     }
                 }
                 Row{
@@ -574,7 +839,7 @@ ApplicationWindow  {
             Text {
                 anchors.fill: parent
                 anchors.leftMargin: 30
-                text: "数据查看软件 | 0.1.0"
+                text: "数据查看软件 | 1.0.1"
                 font.pixelSize:16
                 color: "#E2FFFF"
                 font.family: "微软雅黑"
@@ -994,7 +1259,7 @@ ApplicationWindow  {
                                 id: dataTytpeText
                                 width: 60
                                 height: parent.height
-                                text: showTempData ? "温度": "压强"
+                                text: showTempData ? "温度": "压力"
                                 font.pixelSize: 14
                                 color: "#2C7F75"
                                 font.family: "微软雅黑"
@@ -1165,6 +1430,54 @@ ApplicationWindow  {
                                 width: height
                                 height: parent.height
                                 fillMode: Image.PreserveAspectFit;
+                                source: "qrc:/Res/show.png"
+                            }
+                            Text {
+                                width: parent.width - parent.height
+                                height: parent.height
+                                font.pixelSize: 12
+                                text: "显示设置"
+                                font.family: "微软雅黑"
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                        }
+                        MouseArea
+                        {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.LeftButton
+                            hoverEnabled: true
+                            onEntered: parent.color = "#FD9433";
+                            onExited: parent.color = "#FFFFFF";
+                            onClicked:
+                            {
+                                showSettingPop.myOpen();
+                            }
+                        }
+                    }
+                    Item
+                    {
+                        width: 15
+                        height: parent.height
+                    }
+                    Rectangle
+                    {
+                        width : 90
+                        height : parent.height
+                        border.color: "#FD9433"
+                        border.width: 1
+                        radius: 6
+                        visible: cur_user_index > -1
+                        Row
+                        {
+                            width: parent.width - 20
+                            height: parent.height - 24
+                            anchors.centerIn: parent
+                            Image
+                            {
+                                width: height
+                                height: parent.height
+                                fillMode: Image.PreserveAspectFit;
                                 source: isSelectLabel ? "qrc:/Res/edit.png" : "qrc:/Res/add.png"
                             }
                             Text {
@@ -1191,13 +1504,21 @@ ApplicationWindow  {
                                 var timeData = data["timeData"];
                                 if(isSelectLabel)
                                 {
-                                    time = myplot.getLabelTime();
+                                    var lableTime = myplot.getLabelTime();
+                                    const date = new Date(time * 1000);
+                                    time = dateToString(date);
                                     note = myplot.getLabelText();
                                     type = 1;
                                 }
                                 else
                                 {
-                                    time = timeData[0];
+                                    time = myplot.getTimeLabel();
+                                    if(time == "")
+                                    {
+                                        const date = new Date(timeData[0] * 1000);
+                                        time = dateToString(date);
+                                    }
+
                                     note = ""
                                     type = 0;
                                 }
@@ -1346,7 +1667,7 @@ ApplicationWindow  {
                                 width: parent.width - parent.height
                                 height: parent.height
                                 font.pixelSize: 12
-                                text: "导出文本"
+                                text: "导出Excel"
                                 font.family: "微软雅黑"
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter

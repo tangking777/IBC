@@ -20,5 +20,6 @@
         <file>Res/edit.png</file>
         <file>Res/note.png</file>
         <file>Res/logo.ico</file>
+        <file>Res/show.png</file>
     </qresource>
 </RCC>
