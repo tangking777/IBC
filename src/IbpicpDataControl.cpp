@@ -177,21 +177,25 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath)
             double preValue = (double)GetInt16Data(valueArr) / 100.0;
             if(preValue <= -50 || preValue > 150)
             {
-                continue;
+                preValue = 0;
             }
             QByteArray valueArr2 = dataByteArr.mid(j * 10 + 4, 2);
             double tempValue = (double)GetInt16Data(valueArr2) / 10.0;
-            if(tempValue > 50)
+            if(tempValue < 1 || tempValue > 50)
             {
-                continue;
+                tempValue = 0;
             }
-            if (!id.endsWith("P") && tempValue < 1)
-            {
-                continue;
-            }
+            // if (!id.endsWith("P") && tempValue < 1)
+            // {
+            //     continue;
+            // }
             timeData.push_back((double)beginSecs + j);
             pressureData.push_back(preValue);
             temperatureData.push_back(tempValue);
+        }
+        if(timeData.size() == 0)
+        {
+            continue;
         }
         infoMap.timeVec = timeData;
         infoMap.preVec = pressureData;

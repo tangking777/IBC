@@ -105,7 +105,6 @@ ApplicationWindow  {
         var maxTempValue = -999999;
         var minTempValue = 999999;
         var sumTempValue = 0;
-
         for(var i = sIndex; i < eIndex; i++)
         {
             var pres = pressureData[i];
@@ -129,6 +128,11 @@ ApplicationWindow  {
 
     function updateTimeRanger()
     {
+        if(stimeText.text == "" || etimeText.text == "")
+        {
+            return;
+        }
+
         var sDate = new Date(stimeText.text);
         const stime = Math.trunc(Date.parse(sDate) / 1000);
 
@@ -158,7 +162,7 @@ ApplicationWindow  {
 
         while ((endTime.getTime() - startTime.getTime()) >= 0) {
             var year = startTime.getFullYear();
-            var month = startTime.getMonth() < 10 ? '0' + (startTime.getMonth()) : startTime.getMonth();
+            var month = startTime.getMonth() < 10 ? '0' + (startTime.getMonth() + 1) : startTime.getMonth() + 1;
             var day = startTime.getDate().toString().length === 1 ? "0" + startTime.getDate() : startTime.getDate();
             dateList.push(year + "-" + month + "-" + day);
             startTime.setDate(startTime.getDate() + 1);
@@ -168,11 +172,7 @@ ApplicationWindow  {
 
 
     function getDate(time) {
-        const year = time.getFullYear().toString().padStart(4, "0");
-        const month = (time.getMonth() + 1).toString().padStart(2, "0");
-        const day = time.getDate().toString().padStart(2, "0");
-        var date = new Date(year, month, day);
-        return date;
+        return new Date(time.getFullYear(), time.getMonth(), time.getDate());
     }
 
     function iGetDate(dayIndex, hour, min, second)
@@ -839,7 +839,7 @@ ApplicationWindow  {
             Text {
                 anchors.fill: parent
                 anchors.leftMargin: 30
-                text: "数据查看软件 | 1.0.1"
+                text: "数据查看软件 | 1.0.3"
                 font.pixelSize:16
                 color: "#E2FFFF"
                 font.family: "微软雅黑"
@@ -1408,8 +1408,8 @@ ApplicationWindow  {
                         }
                     }
                     Item{
-                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*100 - 2*20 - 90 - 15*4
-                               - (cur_user_index > -1 ? (90 * 4) : 0)
+                        width: parent.width - 80 - 340 - 30 - 100 - 10 - 3*100 - 2*20 - 90 - 15*5
+                               - (cur_user_index > -1 ? (90 * 5) : 0)
                         height: parent.height
                     }
                     Rectangle
@@ -1750,7 +1750,6 @@ ApplicationWindow  {
                         Component.onCompleted: initCustomPlot()
                         onSelectedTextChanged:
                         {
-                            console.log("plotItem ", value);
                             isSelectLabel = value;
                         }
                     }

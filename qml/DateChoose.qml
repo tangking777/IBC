@@ -27,6 +27,15 @@ Rectangle {
         var min  = a2.split(":")[1];
         var sec  = a2.split(":")[2];
         console.log("data = ", date, hour, min, sec);
+        for(var i = 0; i < dayList.length; i++)
+        {
+            if(a1 == dayList[i])
+            {
+                dayTumbler.currentIndex = i;
+                break;
+            }
+        }
+
         hoursTumbler.currentIndex = hour
         minutesTumbler.currentIndex = min
         secondsTumbler.currentIndex = sec;
@@ -73,6 +82,7 @@ Rectangle {
                     id: dayTumbler
                     width: parent.width / 2
                     height: parent.height
+                    wrap: false
                     delegate: delegateComponent
                 }
 
