@@ -171,6 +171,7 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath)
         QVector<double> temperatureData;
         QVector<double> pressureData;
         qint64 beginSecs = dateSecs - dataCnt;
+        bool isStart = false;
         for(int j = 0; j < dataCnt; j++)
         {
             QByteArray valueArr = dataByteArr.mid(j * 10, 2);
@@ -185,10 +186,14 @@ bool IbpicpDataControl::ReadIbpicpData(QString filePath)
             {
                 tempValue = 0;
             }
-            // if (!id.endsWith("P") && tempValue < 1)
-            // {
-            //     continue;
-            // }
+            if(preValue != 0 || tempValue != 0)
+            {
+                isStart = true;
+            }
+            if(!isStart)
+            {
+                continue;
+            }
             timeData.push_back((double)beginSecs + j);
             pressureData.push_back(preValue);
             temperatureData.push_back(tempValue);
@@ -286,6 +291,10 @@ void IbpicpDataControl::MegredUserData()
             QVector<double> blankTemVec;
             if(newStartTime > lastTime)
             {
+                if(newStartTime - lastTime > 604800)
+                {
+                    continue;
+                }
                 for(int p = (int)lastTime + 1; p < (int)newStartTime; p++)
                 {
                     blankTimeVec.push_back(p);
