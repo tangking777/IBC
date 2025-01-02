@@ -338,33 +338,62 @@ void CustomPlotItem::routeWheelEvents( QWheelEvent* event )
 {
     if (getPlot())
     {
-        QList<QCPAxis*> axes;
-        QWheelEvent* newEvent = new QWheelEvent( event->pos(), event->delta(), event->buttons(), event->modifiers(), event->orientation() );
-        QCoreApplication::postEvent( getPlot(), newEvent );
+        double factor = (event->delta() > 0) ? 0.9 : 1.1;
+        QPointF mousePos = event->position();
 
-        if (getPlot()->xAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        QRect axisRect = getPlot()->axisRect()->rect();
+        if(axisRect.contains(mousePos.toPoint()))
         {
-            axes << getPlot()->xAxis;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(getPlot()->xAxis->orientation());
+            double yMouse = getPlot()->yAxis->pixelToCoord(mousePos.y());
+            QCPRange yRange = getPlot()->yAxis->range();
+            double yLower = yMouse - (yMouse - yRange.lower) * factor;
+            double yUpper = yMouse + (yRange.upper - yMouse) * factor;
+            getPlot()->yAxis->setRange(yLower, yUpper);
+
+            double yMouse2 = getPlot()->yAxis2->pixelToCoord(mousePos.y());
+            QCPRange yRange2 = getPlot()->yAxis2->range();
+            double yLower2 = yMouse2 - (yMouse2 - yRange2.lower) * factor;
+            double yUpper2 = yMouse2 + (yRange2.upper - yMouse2) * factor;
+            getPlot()->yAxis2->setRange(yLower2, yUpper2);
+
+
+            double xMouse = getPlot()->xAxis->pixelToCoord(mousePos.x());
+            QCPRange xRange = getPlot()->xAxis->range();
+            double xLower = xMouse - (xMouse - xRange.lower) * factor;
+            double xUpper = xMouse + (xRange.upper - xMouse) * factor;
+            getPlot()->xAxis->setRange(xLower, xUpper);
         }
-        else if (getPlot()->yAxis->selectedParts().testFlag(QCPAxis::spAxis))
+        else if(mousePos.x() < axisRect.left())
         {
-            axes << getPlot()->yAxis;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(getPlot()->yAxis->orientation());
+            double yMouse = getPlot()->yAxis->pixelToCoord(mousePos.y());
+            QCPRange yRange = getPlot()->yAxis->range();
+
+            double yLower = yMouse - (yMouse - yRange.lower) * factor;
+            double yUpper = yMouse + (yRange.upper - yMouse) * factor;
+
+            getPlot()->yAxis->setRange(yLower, yUpper);
         }
-        else if (getPlot()->yAxis2->selectedParts().testFlag(QCPAxis::spAxis))
+        else if(mousePos.x() > axisRect.right())
         {
-            axes << getPlot()->yAxis2;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(getPlot()->yAxis2->orientation());
+            double yMouse2 = getPlot()->yAxis2->pixelToCoord(mousePos.y());
+            QCPRange yRange2 = getPlot()->yAxis2->range();
+
+            double yLower2 = yMouse2 - (yMouse2 - yRange2.lower) * factor;
+            double yUpper2 = yMouse2 + (yRange2.upper - yMouse2) * factor;
+
+            getPlot()->yAxis2->setRange(yLower2, yUpper2);
+
         }
         else
         {
-            axes << getPlot()->yAxis << getPlot()->xAxis << getPlot()->yAxis2;
-            getPlot()->axisRect()->setRangeZoomAxes(axes);
-            getPlot()->axisRect()->setRangeZoom(Qt::Horizontal|Qt::Vertical);
+            double xMouse = getPlot()->xAxis->pixelToCoord(mousePos.x());
+            QCPRange xRange = getPlot()->xAxis->range();
+
+            double xLower = xMouse - (xMouse - xRange.lower) * factor;
+            double xUpper = xMouse + (xRange.upper - xMouse) * factor;
+
+            getPlot()->xAxis->setRange(xLower, xUpper);
+
         }
 
         if(getPlot()->xAxis->range().lower < xAxisMinValue
@@ -384,6 +413,7 @@ void CustomPlotItem::routeWheelEvents( QWheelEvent* event )
         {
             setTempRange(yAxis2MinValue, yAxis2MaxValue);
         }
+        getPlot()->replot();
     }
 }
 
