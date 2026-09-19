@@ -768,6 +768,7 @@ double CustomPlotItem::getLabelTime()
         }
         return 0;
     }
+    return 0;
 }
 
 QString CustomPlotItem::getTimeLabel()

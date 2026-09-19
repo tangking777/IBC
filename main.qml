@@ -26,7 +26,7 @@ ApplicationWindow  {
     property point rootTitleMousePos: Qt.point(x,y)
     property string bgColor: "#FD8129"
     property var dateList: []
-    property var m_timeData: []
+    property bool updatingRange: false
 
     property var userDataList
     property int cur_user_index: -1
@@ -36,35 +36,22 @@ ApplicationWindow  {
         if(userDataList && cur_user_index > -1 && userDataList.length > cur_user_index)
         {
             var data = userDataList[cur_user_index];
-            var timeData = data["timeData"];
-            m_timeData = timeData;
-            var pressureData = data["pressureData"];
-            var temperatureData = data["temperatureData"];
-            const startDate = new Date(timeData[0] * 1000);
-            const endDate = new Date(timeData[timeData.length - 1] * 1000);
+            const startDate = new Date(data["startTime"] * 1000);
+            const endDate = new Date(data["endTime"] * 1000);
             const dayList = getAllDay(startDate, endDate);
 
+            updatingRange = true;
             stimeText.text = dateToString(startDate);
             etimeText.text = dateToString(endDate);
             dc.dayList = dayList;
             endDc.dayList = dayList;
             labelDc.dayList = dayList;
             dateList = dayList;
+            updatingRange = false;
 
-            myplot.initPlot();
-            myplot.setPresGraphData(timeData, pressureData);
-            var id = data["id"];
-            if(id.endsWith("P"))
-            {
-                myplot.setTempGraphVisible(false);
-            }
-            else
-            {
-                myplot.setTempGraphVisible(true);
-                myplot.setTempGraphData(timeData, temperatureData);
-            }
-            myplot.rescaleAxes()
-            myplot.replot();
+            myplot.clearLabels();
+            ibpicpDataControl.applyToPlot(cur_user_index, myplot);
+            updateTimeRanger();
         }
     }
 
@@ -80,54 +67,25 @@ ApplicationWindow  {
 
     function iCalcValue(stime, etime)
     {
-        var data = userDataList[cur_user_index];
-        var timeData = data["timeData"];
-        const firstTime = timeData[0];
-        if(stime < firstTime)
+        if(cur_user_index < 0)
         {
-            stime = firstTime;
+            return;
         }
-        const sIndex = stime - firstTime;
-
-        const lastTime = timeData[timeData.length - 1];
-        if(etime > lastTime)
-        {
-            etime = lastTime;
-        }
-        const eIndex = etime - firstTime;
-
-        var pressureData = data["pressureData"];
-        var temperatureData = data["temperatureData"];
-
-        var maxPresValue = -999999;
-        var minPresValue = 999999;
-        var sumPresValue = 0;
-        var maxTempValue = -999999;
-        var minTempValue = 999999;
-        var sumTempValue = 0;
-        for(var i = sIndex; i < eIndex; i++)
-        {
-            var pres = pressureData[i];
-            maxPresValue = Math.max(pres, maxPresValue);
-            minPresValue = Math.min(pres, minPresValue);
-            sumPresValue += pres;
-
-            var temp = temperatureData[i];
-            maxTempValue = Math.max(temp, maxTempValue);
-            minTempValue = Math.min(temp, minTempValue);
-            sumTempValue += temp;
-        }
-        maxPres = maxPresValue.toFixed(2);
-        minPres = minPresValue.toFixed(2);
-        avgPres = (sumPresValue / (eIndex - sIndex)).toFixed(2);
-
-        maxTemp = maxTempValue.toFixed(2);
-        minTemp = minTempValue.toFixed(2);
-        avgTemp = (sumTempValue / (eIndex - sIndex)).toFixed(2);
+        var s = ibpicpDataControl.calcStats(cur_user_index, stime, etime);
+        maxPres = Number(s.maxPres).toFixed(2);
+        minPres = Number(s.minPres).toFixed(2);
+        avgPres = Number(s.avgPres).toFixed(2);
+        maxTemp = Number(s.maxTemp).toFixed(2);
+        minTemp = Number(s.minTemp).toFixed(2);
+        avgTemp = Number(s.avgTemp).toFixed(2);
     }
 
     function updateTimeRanger()
     {
+        if(updatingRange)
+        {
+            return;
+        }
         if(stimeText.text == "" || etimeText.text == "")
         {
             return;
@@ -218,9 +176,14 @@ ApplicationWindow  {
         nameFilters: ["Data files (*.bin *.bson)", "Wave data (waveData*.bin)", "Legacy data (*.bin)"]
         selectMultiple: true
         onAccepted: {
-            var filePathStr = inputFileDialog.fileUrls.toString();
-            ibpicpDataControl.ReadIbpicpDatas(filePathStr.split(","), true);
+            var paths = [];
+            for (var i = 0; i < inputFileDialog.fileUrls.length; ++i)
+                paths.push(inputFileDialog.fileUrls[i].toString());
+            loadingMask.visible = true;
             cur_user_index = -1;
+            Qt.callLater(function() {
+                ibpicpDataControl.ReadIbpicpDatas(paths, true);
+            });
         }
     }
 
@@ -242,7 +205,7 @@ ApplicationWindow  {
         selectExisting: false
         onAccepted: {
             var path = outputTextDialog.fileUrl.toString().replace("file:///", "")
-            myplot.exportExcel(path, JSON.stringify(userDataList));
+            ibpicpDataControl.exportExcel(path);
         }
     }
 
@@ -736,9 +699,8 @@ ApplicationWindow  {
                                         const curTime = Math.trunc(Date.parse(date) / 1000);
 
                                         var data = userDataList[cur_user_index];
-                                        var timeData = data["timeData"];
-                                        const firstTime = timeData[0];
-                                        const lastTime = timeData[timeData.length - 1];
+                                        const firstTime = data["startTime"];
+                                        const lastTime = data["endTime"];
                                         if(curTime < firstTime  || curTime > lastTime)
                                         {
                                             msg.func = function(){
@@ -750,19 +712,16 @@ ApplicationWindow  {
                                             msg.openMsg();
                                             return;
                                         }
-                                        const index = curTime - firstTime;
                                         var yValue = 0;
                                         var type = 0;
                                         if(presBox.checked)
                                         {
-                                            var pressureData = data["pressureData"];
-                                            yValue = pressureData[index];
+                                            yValue = ibpicpDataControl.sampleValue(cur_user_index, curTime, true);
                                         }
                                         else
                                         {
                                             type = 1;
-                                            var temperatureData = data["temperatureData"];
-                                            yValue = temperatureData[index];
+                                            yValue = ibpicpDataControl.sampleValue(cur_user_index, curTime, false);
                                         }
 
                                         myplot.addLabel(type, curTime, yValue, note_value.text.trim());
@@ -820,6 +779,7 @@ ApplicationWindow  {
             userInfoRep.model = [];
             userDataList = ibpicpDataControl.userData;
             userInfoRep.model = userDataList;
+            loadingMask.visible = false;
         }
     }
 
@@ -839,7 +799,7 @@ ApplicationWindow  {
             Text {
                 anchors.fill: parent
                 anchors.leftMargin: 30
-                text: "数据查看软件 | 1.0.3"
+                text: "数据查看软件 | 1.1.0"
                 font.pixelSize:16
                 color: "#E2FFFF"
                 font.family: "微软雅黑"
@@ -1501,11 +1461,10 @@ ApplicationWindow  {
                             {
                                 var time, note, type
                                 var data = userDataList[cur_user_index];
-                                var timeData = data["timeData"];
                                 if(isSelectLabel)
                                 {
                                     var lableTime = myplot.getLabelTime();
-                                    const date = new Date(time * 1000);
+                                    const date = new Date(lableTime * 1000);
                                     time = dateToString(date);
                                     note = myplot.getLabelText();
                                     type = 1;
@@ -1515,7 +1474,7 @@ ApplicationWindow  {
                                     time = myplot.getTimeLabel();
                                     if(time == "")
                                     {
-                                        const date = new Date(timeData[0] * 1000);
+                                        const date = new Date(data["startTime"] * 1000);
                                         time = dateToString(date);
                                     }
 
@@ -1759,6 +1718,32 @@ ApplicationWindow  {
             }
         }
         // Window End
+    }
+
+    Rectangle {
+        id: loadingMask
+        anchors.fill: parent
+        color: "#88000000"
+        visible: false
+        z: 9999
+        MouseArea {
+            anchors.fill: parent
+        }
+        Column {
+            anchors.centerIn: parent
+            spacing: 16
+            BusyIndicator {
+                running: loadingMask.visible
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+            Text {
+                text: qsTr("正在读取…")
+                color: "#FFFFFF"
+                font.pixelSize: 16
+                font.family: "微软雅黑"
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
     }
 }
 
