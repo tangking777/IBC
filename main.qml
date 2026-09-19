@@ -215,7 +215,7 @@ ApplicationWindow  {
     FileDialog {
         id: inputFileDialog
         title: "选择数据文件"
-        nameFilters: ["Data files (*.bin *.bson)"]
+        nameFilters: ["Data files (*.bin *.bson)", "Wave data (waveData*.bin)", "Legacy data (*.bin)"]
         selectMultiple: true
         onAccepted: {
             var filePathStr = inputFileDialog.fileUrls.toString();

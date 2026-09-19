@@ -5,6 +5,7 @@
 #include <QGuiApplication>
 #include <QString>
 #include <QFile>
+#include <QMap>
 #include <QVector>
 
 #include "CustomPlot/qcustomplot.h"
@@ -37,6 +38,7 @@ public slots:
 
 private:
     bool ReadIbpicpData(QString filePath);
+    bool ReadWaveData(QString filePath);
     bool ReadBsonData(QString filePath);
     void MegredUserData();
 
