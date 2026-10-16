@@ -13,6 +13,7 @@
 #include <QJsonArray>
 #include <QtEndian>
 #include <algorithm>
+#include <limits>
 #include "IbpicpDataControl.h"
 #include "qmlplot.h"
 #include "./Xlsx/xlsxdocument.h"
@@ -37,7 +38,7 @@ namespace {
     const quint32 waveCapacity = 1209600;
     const qint64 waveRegionSize = 9676800;
     const int waveInvalidParam = -10000;
-    const qint64 maxMergeGapSecs = 604800;
+    const qint64 maxMergeGapSecs = 7 * 24 * 3600;
     const int excelMaxRows = 1048576;
 
     qint16 GetUIntData(QByteArray byteArr)
@@ -190,6 +191,73 @@ namespace {
             name = sanitizeSheetName(base.left(31 - suffix.size()) + suffix);
         }
         return name;
+    }
+
+    struct SamplePoint
+    {
+        qint64 time;
+        double pressure;
+        double temperature;
+    };
+
+    // 从第一笔有效采样到最后一笔，中间缺的每一秒补 0。不在这段范围之外补点。
+    void buildZeroFilledSeries(const QVector<UserInfo> &segments,
+                               QVector<double> &timeData,
+                               QVector<double> &pressureData,
+                               QVector<double> &temperatureData)
+    {
+        QVector<SamplePoint> samples;
+        for (const UserInfo &userInfo : segments)
+        {
+            const int n = qMin(userInfo.timeVec.size(),
+                               qMin(userInfo.preVec.size(), userInfo.tempVec.size()));
+            for (int i = 0; i < n; ++i)
+            {
+                samples.push_back(SamplePoint{
+                    static_cast<qint64>(userInfo.timeVec[i]),
+                    userInfo.preVec[i],
+                    userInfo.tempVec[i]});
+            }
+        }
+        if (samples.isEmpty())
+            return;
+
+        std::stable_sort(samples.begin(), samples.end(), [](const SamplePoint &a, const SamplePoint &b) {
+            return a.time < b.time;
+        });
+
+        const qint64 first = samples.first().time;
+        const qint64 last = samples.last().time;
+        const qint64 span = last - first + 1;
+        if (span <= 0)
+            return;
+        if (span <= static_cast<qint64>(std::numeric_limits<int>::max()))
+        {
+            const int count = static_cast<int>(span);
+            timeData.reserve(count);
+            pressureData.reserve(count);
+            temperatureData.reserve(count);
+        }
+
+        int index = 0;
+        const int n = samples.size();
+        for (qint64 t = first; t <= last; ++t)
+        {
+            double pressure = 0.0;
+            double temperature = 0.0;
+            if (index < n && samples[index].time == t)
+            {
+                while (index < n && samples[index].time == t)
+                {
+                    pressure = samples[index].pressure;
+                    temperature = samples[index].temperature;
+                    ++index;
+                }
+            }
+            timeData.push_back(static_cast<double>(t));
+            pressureData.push_back(pressure);
+            temperatureData.push_back(temperature);
+        }
     }
 }
 
@@ -493,21 +561,28 @@ void IbpicpDataControl::MegredUserData()
 
         std::sort(dataVec.begin(), dataVec.end(), UserInfoComparison);
 
+        // 单个文件最多保存 7 天。下一段起点距当前末尾超过 7 天时不再并入。
+        QVector<UserInfo> kept;
+        kept.reserve(dataVec.size());
+        qint64 lastTime = 0;
+        bool hasKept = false;
+        for (const UserInfo &userInfo : dataVec)
+        {
+            const qint64 start = static_cast<qint64>(userInfo.timeVec.first());
+            qint64 end = start;
+            for (double t : userInfo.timeVec)
+                end = qMax(end, static_cast<qint64>(t));
+            if (hasKept && start > lastTime && start - lastTime > maxMergeGapSecs)
+                continue;
+            kept.push_back(userInfo);
+            lastTime = hasKept ? qMax(lastTime, end) : end;
+            hasKept = true;
+        }
+
         QVector<double> timeData;
         QVector<double> temperatureData;
         QVector<double> pressureData;
-        double lastTime = dataVec[0].timeVec[0];
-        for (const UserInfo &userInfo : dataVec)
-        {
-            const double newStartTime = userInfo.timeVec[0];
-            if (newStartTime > lastTime && newStartTime - lastTime > maxMergeGapSecs)
-                continue;
-
-            timeData.append(userInfo.timeVec);
-            pressureData.append(userInfo.preVec);
-            temperatureData.append(userInfo.tempVec);
-            lastTime = timeData[timeData.length() - 1];
-        }
+        buildZeroFilledSeries(kept, timeData, pressureData, temperatureData);
         if (timeData.isEmpty())
             continue;
 
