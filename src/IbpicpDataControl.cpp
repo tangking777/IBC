@@ -38,6 +38,7 @@ namespace {
     const quint32 waveCapacity = 1209600;
     const qint64 waveRegionSize = 9676800;
     const int waveInvalidParam = -10000;
+    const quint32 waveInvalidTimestamp = 0xFFFFFFFFu;
     const qint64 maxMergeGapSecs = 7 * 24 * 3600;
     const int excelMaxRows = 1048576;
 
@@ -462,7 +463,7 @@ bool IbpicpDataControl::ReadWaveData(QString filePath)
 
             const char *pt = points + static_cast<qint64>(physicalIndex) * wavePointSize;
             const quint32 rawTs = ReadU32LE(pt);
-            if (rawTs == 0)
+            if (rawTs == 0 || rawTs == waveInvalidTimestamp)
                 continue;
 
             const qint64 ts = DeviceTsToLocalEpoch(rawTs);
